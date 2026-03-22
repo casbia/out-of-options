@@ -21,8 +21,8 @@
 -->
 
 <!-- MindAR + Three.js (image tracking) -->
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+<script async src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
+<script async src="https://unpkg.com/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=Space+Mono:ital@0;1&display=swap');
@@ -786,7 +786,11 @@ async function startAR() {
   }
 
   // Init MindAR
-  const { MindARThree } = window.MINDAR.IMAGE;
+  await new Promise(resolve => {
+  const check = () => window.MINDAR ? resolve() : setTimeout(check, 100);
+  check();
+});
+const { MindARThree } = window.MINDAR.IMAGE;
   S.mindar = new MindARThree({
     container: document.getElementById('ar-container'),
     imageTargetSrc: CONFIG.MIND_FILE,
