@@ -20,9 +20,15 @@
   ╚══════════════════════════════════════════════════════════╝
 -->
 
-<!-- MindAR + Three.js (image tracking) -->
-<script async src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
-<script async src="https://unpkg.com/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
+<!-- MindAR loaded as ES module, exposed to window for use in inline scripts -->
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js';
+  import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.module.js';
+  window.THREE = THREE;
+  window.MindARThree = MindARThree;
+  window._mindARReady = true;
+  window.dispatchEvent(new Event('mindar-ready'));
+</script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=Space+Mono:ital@0;1&display=swap');
@@ -531,7 +537,7 @@ const CONFIG = {
   MIND_FILE: 'targets.mind',
 
   // Optional: real photo from inside the box. Leave '' to use generated version.
-  REVEAL_PHOTO: 'reveal.jpg',
+  REVEAL_PHOTO: '',
 
   // Physical width of the AR marker printed on the box (in meters)
   // e.g. if you print a 15cm marker: 0.15
@@ -785,13 +791,14 @@ async function startAR() {
     show('screen-entry'); return;
   }
 
-  // Init MindAR
+  // Wait for ES module to expose MindARThree
   await new Promise(resolve => {
-  const check = () => window.MINDAR ? resolve() : setTimeout(check, 100);
-  check();
-});
-const { MindARThree } = window.MINDAR.IMAGE;
-  S.mindar = new MindARThree({
+    if (window._mindARReady) return resolve();
+    window.addEventListener('mindar-ready', resolve, { once: true });
+  });
+
+  // Init MindAR
+  S.mindar = new window.MindARThree({
     container: document.getElementById('ar-container'),
     imageTargetSrc: CONFIG.MIND_FILE,
     maxTrack: 1,
