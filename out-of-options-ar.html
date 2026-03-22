@@ -787,6 +787,23 @@ function show(id) {
   if (el) el.classList.add('active');
 }
 
+// ─── REAR CAMERA HELPER ───────────────────────────
+async function getRearCameraId() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    // On most phones: multiple cameras, rear ones have labels like "back", "environment"
+    // If only one camera exists just return undefined (let browser decide)
+    if (cameras.length <= 1) return undefined;
+    const rear = cameras.find(d =>
+      /back|rear|environment/i.test(d.label)
+    );
+    return rear ? rear.deviceId : cameras[cameras.length - 1].deviceId;
+  } catch(e) {
+    return undefined;
+  }
+}
+
 // ─── START AR ─────────────────────────────────────
 async function startAR() {
   show('screen-loading');
@@ -806,7 +823,7 @@ async function startAR() {
     window.addEventListener('mindar-ready', resolve, { once: true });
   });
 
-  // Init MindAR
+  // Init MindAR — force rear camera
   S.mindar = new window.MindARThree({
     container: document.getElementById('ar-container'),
     imageTargetSrc: CONFIG.MIND_FILE,
@@ -814,9 +831,15 @@ async function startAR() {
     uiLoading: 'no',
     uiScanning: 'no',
     uiError: 'no',
+    cameraDeviceId: await getRearCameraId(),
   });
 
   const { renderer, scene, camera } = S.mindar;
+
+  // Fix Three.js r152+ deprecation warning
+  if (renderer.outputColorSpace !== undefined) {
+    renderer.outputColorSpace = window.THREE.SRGBColorSpace;
+  }
 
   // Marker anchor — invisible plane, just for tracking
   const anchor = S.mindar.addAnchor(0);
