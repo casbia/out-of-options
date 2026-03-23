@@ -5,17 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>不在選項裡 · Out of Options</title>
 
-<!--
-  ╔══════════════════════════════════════════════════════════╗
-  ║  不在選項裡 · Out of Options  — v3 合併版                ║
-  ║  替換清單（部署前必做）：                                 ║
-  ║  1. targets.mind → MindAR compiler 編譯草莓圖案          ║
-  ║     https://hiukim.github.io/mind-ar-js-doc/tools/compile║
-  ║  2. reveal.jpg   → 從箱內拍攝的真實照片，同資料夾        ║
-  ║  3. DEV_MODE: false → 展場正式使用前改掉                  ║
-  ╚══════════════════════════════════════════════════════════╝
--->
-
 <script type="importmap">
 {
   "imports": {
@@ -35,937 +24,299 @@
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
 
 <style>
 :root {
-  --bg:        #F2F4F7;
-  --surface:   #FFFFFF;
-  --surface2:  #F7F8FA;
-  --border:    #E8EAED;
-  --text-pri:  #1C1E21;
-  --text-sec:  #65676B;
-  --text-ter:  #90949C;
-  --accent:    #FF5C5C;
-  --accent-lt: #FFF0F0;
-  --blue:      #1877F2;
-  --green:     #31A24C;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.18);
-  --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-pill: 999px;
+  --bg: #F0F2F5;
+  --surface: #FFFFFF;
+  --text-pri: #1C1E21;
+  --text-sec: #65676B;
+  --accent: #FF4B4B;
+  --blue: #0084FF;
+  --border: #E4E6EB;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body {
-  width:100%; height:100%;
-  font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;
-  background:var(--bg); color:var(--text-pri);
-  overflow:hidden; position:fixed;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; font-family: 'Noto Sans TC', sans-serif; background: var(--bg); overflow: hidden; position: fixed; }
 
-/* SCREENS */
+/* --- 通用畫面架構 --- */
 .screen {
-  position:fixed; inset:0; z-index:10;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  opacity:0; pointer-events:none;
-  transition:opacity 0.5s ease;
-  background:var(--bg);
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease; background: var(--bg);
 }
-.screen.active { opacity:1; pointer-events:all; }
+.screen.active { opacity: 1; pointer-events: all; }
 
-/* ── ENTRY ── */
-#screen-entry { justify-content:flex-start; padding:0; }
-.entry-scroll {
-  width:100%; max-width:480px; height:100%;
-  overflow-y:auto; padding:28px 20px 40px;
-  display:flex; flex-direction:column; gap:14px;
-  scrollbar-width:none;
-}
-.entry-scroll::-webkit-scrollbar { display:none; }
+/* --- 入口介面：外送 App 風格 --- */
+#screen-entry { padding: 20px; align-items: center; justify-content: flex-start; }
+.delivery-header { width: 100%; padding: 15px 0; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; color: var(--accent); }
+.status-card { width: 100%; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+.status-title { font-size: 14px; color: var(--text-sec); margin-bottom: 5px; }
+.status-main { font-size: 20px; font-weight: 700; color: var(--text-pri); display: flex; align-items: center; gap: 8px; }
+.status-dot { width: 10px; height: 10px; background: #FFB300; border-radius: 50%; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
 
-.notif-bar {
-  display:flex; align-items:center; gap:8px;
-  padding-bottom:4px;
+.msg-bubble-preview {
+  width: 100%; background: white; border-radius: 15px; padding: 15px; display: flex; gap: 12px; align-items: center; cursor: pointer;
+  border: 1px solid var(--border); transition: 0.2s;
 }
-.notif-dot {
-  width:8px; height:8px; border-radius:50%;
-  background:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-lt);
-}
-.notif-text { font-size:12px; color:var(--text-sec); }
-.notif-time { margin-left:auto; font-size:11px; color:var(--text-ter); }
+.msg-bubble-preview:active { transform: scale(0.98); background: #fafafa; }
+.avatar-blur { width: 45px; height: 45px; background: #ddd; border-radius: 50%; filter: blur(4px); flex-shrink: 0; }
+.msg-content { flex: 1; overflow: hidden; }
+.msg-name { font-weight: 600; font-size: 15px; }
+.msg-text { font-size: 13px; color: var(--text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.delivery-card {
-  background:var(--surface); border-radius:var(--r-lg);
-  box-shadow:var(--shadow-md); padding:20px;
-  display:flex; flex-direction:column; gap:14px;
-}
-.dc-top { display:flex; align-items:center; gap:14px; }
-.dc-icon {
-  width:52px; height:52px; border-radius:var(--r-md);
-  background:var(--accent-lt);
-  display:flex; align-items:center; justify-content:center;
-  font-size:28px; flex-shrink:0;
-}
-.dc-title { font-size:16px; font-weight:600; margin-bottom:3px; }
-.dc-sub   { font-size:13px; color:var(--text-sec); line-height:1.5; }
-.dc-status {
-  display:flex; align-items:center; gap:8px;
-  padding:10px 14px; background:#FFF8E7;
-  border-radius:var(--r-sm); border-left:3px solid #FFB300;
-}
-.dc-status-dot {
-  width:8px; height:8px; border-radius:50%; background:#FFB300; flex-shrink:0;
-  animation:blink-s 1.5s ease-in-out infinite;
-}
-@keyframes blink-s { 0%,100%{opacity:1} 50%{opacity:0.25} }
-.dc-status span { font-size:13px; font-weight:500; color:#8A6000; }
-.dc-addr { font-size:12px; color:var(--text-ter); display:flex; align-items:center; gap:6px; }
+/* --- 相機與 AR 覆蓋層 --- */
+#ar-container { position: fixed; inset: 0; z-index: 1; display: none; }
+#ar-container.active { display: block; }
 
-.msg-card {
-  background:var(--surface); border-radius:var(--r-lg);
-  box-shadow:var(--shadow-sm); padding:16px 18px;
-  display:flex; align-items:center; gap:14px;
-  cursor:pointer; transition:transform 0.15s;
-}
-.msg-card:active { transform:scale(0.97); }
-.mc-avatar {
-  width:46px; height:46px; border-radius:50%;
-  background:linear-gradient(135deg,#FFB347,#FF5C5C);
-  display:flex; align-items:center; justify-content:center;
-  font-size:24px; flex-shrink:0; position:relative;
-}
-.mc-badge {
-  position:absolute; top:-2px; right:-2px;
-  width:16px; height:16px; border-radius:50%;
-  background:var(--accent); border:2px solid var(--surface);
-  display:flex; align-items:center; justify-content:center;
-  font-size:8px; color:white; font-weight:700;
-}
-.mc-body { flex:1; min-width:0; }
-.mc-name { font-size:15px; font-weight:600; margin-bottom:3px; }
-.mc-preview {
-  font-size:13px; color:var(--text-sec);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.mc-time { font-size:11px; color:var(--accent); font-weight:500; flex-shrink:0; }
+#ar-overlay-ui { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; }
+#ar-overlay-ui.active { pointer-events: all; }
 
-.open-btn {
-  width:100%; padding:16px;
-  background:var(--accent); color:white;
-  font-size:16px; font-weight:600;
-  border:none; border-radius:var(--r-pill); cursor:pointer;
-  box-shadow:0 4px 16px rgba(255,92,92,0.4);
-  transition:all 0.2s; letter-spacing:0.03em;
-}
-.open-btn:active { transform:scale(0.97); box-shadow:none; }
-.entry-hint {
-  font-size:11px; color:var(--text-ter);
-  text-align:center; line-height:1.8;
+.camera-header {
+  padding: 15px; background: rgba(255,255,255,0.85); backdrop-filter: blur(10px);
+  display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border);
 }
 
-/* ── LOADING ── */
-#screen-loading { gap:16px; }
-.spin {
-  width:44px; height:44px;
-  border:3px solid var(--border); border-top-color:var(--accent);
-  border-radius:50%; animation:spin 1s linear infinite;
-}
-@keyframes spin { to{transform:rotate(360deg)} }
-.spin-label { font-size:13px; color:var(--text-sec); }
-
-/* ── SCAN ── */
-#screen-scan { gap:28px; padding:48px 32px; }
-.viewfinder { width:220px; height:220px; position:relative; }
-.vc { position:absolute; width:28px; height:28px; }
-.vc.tl{top:0;left:0;border-top:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:4px 0 0 0;}
-.vc.tr{top:0;right:0;border-top:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 4px 0 0;}
-.vc.bl{bottom:0;left:0;border-bottom:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:0 0 0 4px;}
-.vc.br{bottom:0;right:0;border-bottom:3px solid var(--accent);border-right:3px solid var(--accent);border-radius:0 0 4px 0;}
-.vsweep {
-  position:absolute; left:4px; right:4px; height:2px;
-  background:linear-gradient(90deg,transparent,var(--accent),transparent);
-  border-radius:999px; animation:sweep 2.4s ease-in-out infinite; opacity:0.8;
-}
-@keyframes sweep {
-  0%{top:4px;opacity:0} 8%{opacity:0.8} 92%{opacity:0.8} 100%{top:214px;opacity:0}
-}
-.scan-inst { font-size:16px; font-weight:500; text-align:center; }
-.scan-sub  { font-size:13px; color:var(--text-sec); text-align:center; line-height:1.8; }
-
-/* Fruit flicker overlay */
-#sfo {
-  position:fixed; inset:0; z-index:6;
-  display:none; align-items:center; justify-content:center;
-  flex-direction:column; gap:10px; pointer-events:none;
-}
-#sfo.active { display:flex; }
-.sfo-e {
-  font-size:96px;
-  filter:drop-shadow(0 0 24px rgba(255,92,92,0.5));
-  animation:fe 0.22s steps(1) infinite;
-}
-@keyframes fe {
-  0%{opacity:1;transform:scale(1) rotate(0deg)}
-  25%{opacity:0.7;transform:scale(1.06) rotate(-3deg)}
-  50%{opacity:1;transform:scale(0.95) rotate(2deg)}
-  75%{opacity:0.8;transform:scale(1.04) rotate(-1deg)}
-}
-.sfo-label {
-  font-size:11px; font-weight:600; letter-spacing:0.18em;
-  color:rgba(255,255,255,0.75);
-  background:rgba(0,0,0,0.4); padding:4px 14px;
-  border-radius:999px; backdrop-filter:blur(4px);
+.fruit-scanner-label {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 100px; display: none; filter: drop-shadow(0 0 20px rgba(255,255,255,0.6));
+  z-index: 60;
 }
 
-/* AR camera */
-#ar-container { position:fixed; inset:0; z-index:1; display:none; }
-#ar-container.active { display:block; }
+/* --- 對話視窗 --- */
+.chat-feed { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+.msg-row { display: flex; width: 100%; gap: 8px; }
+.msg-row.ai { justify-content: flex-start; }
+.msg-row.user { justify-content: flex-end; }
+.bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; max-width: 75%; }
+.ai .bubble { background: white; color: var(--text-pri); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.user .bubble { background: var(--blue); color: white; }
 
-/* ── CHAT PANEL ── */
-#chat-panel {
-  position:fixed; inset:0; z-index:15;
-  display:flex; flex-direction:column;
-  background:var(--bg);
-  opacity:0; pointer-events:none; transition:opacity 0.5s;
-}
-#chat-panel.active { opacity:1; pointer-events:all; }
+/* --- 距離提示與結束 --- */
+.dist-hud { position: fixed; bottom: 30px; left: 0; right: 0; text-align: center; color: var(--accent); font-weight: bold; font-family: 'Space Mono', monospace; }
 
-.chat-hdr {
-  flex-shrink:0; padding:12px 16px 10px;
-  background:var(--surface); border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:12px;
-  box-shadow:var(--shadow-sm);
-}
-.ch-back { font-size:22px; color:var(--blue); cursor:pointer; padding:4px; line-height:1; }
-.ch-avt {
-  width:38px; height:38px; border-radius:50%;
-  background:linear-gradient(135deg,#FFB347,#FF5C5C);
-  display:flex; align-items:center; justify-content:center;
-  font-size:20px; flex-shrink:0; position:relative;
-}
-.ch-online {
-  position:absolute; bottom:0; right:0;
-  width:10px; height:10px; border-radius:50%;
-  background:var(--green); border:2px solid var(--surface);
-}
-.ch-name  { font-size:16px; font-weight:600; }
-.ch-status { font-size:12px; color:var(--green); }
+#screen-reveal { background: #000; color: white; display: flex; align-items: center; justify-content: center; padding: 30px; }
+.polaroid { background: white; padding: 12px 12px 40px; border-radius: 2px; width: 100%; max-width: 300px; transform: rotate(-2deg); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+.pol-photo { width: 100%; aspect-ratio: 1; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pol-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pol-text { color: #333; margin-top: 15px; font-family: 'Space Mono', monospace; font-size: 12px; text-align: center; }
 
-.chat-feed {
-  flex:1; overflow-y:auto; padding:12px 16px 8px;
-  display:flex; flex-direction:column; gap:4px;
-  scrollbar-width:none;
-}
-.chat-feed::-webkit-scrollbar { display:none; }
-.date-div { text-align:center; margin:8px 0; }
-.date-div span {
-  font-size:11px; color:var(--text-ter);
-  background:var(--border); padding:3px 10px; border-radius:999px;
-}
-
-.msg {
-  display:flex; gap:8px; max-width:100%;
-  opacity:0; transform:translateY(8px); transition:all 0.35s ease;
-}
-.msg.in { opacity:1; transform:none; }
-.msg-sys { align-self:flex-start; align-items:flex-end; margin-bottom:4px; }
-.msg-usr { align-self:flex-end; flex-direction:row-reverse; margin-bottom:4px; }
-.m-avt {
-  width:28px; height:28px; border-radius:50%;
-  background:linear-gradient(135deg,#FFB347,#FF5C5C);
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; flex-shrink:0;
-}
-.bubble {
-  padding:10px 14px; font-size:15px; line-height:1.5;
-  max-width:76%; word-break:break-word;
-}
-.msg-sys .bubble {
-  background:var(--surface); color:var(--text-pri);
-  border-radius:18px 18px 18px 4px; box-shadow:var(--shadow-sm);
-}
-.msg-usr .bubble {
-  background:var(--blue); color:white;
-  border-radius:18px 18px 4px 18px;
-}
-.b-meta { font-size:10px; color:var(--text-ter); margin-top:3px; padding:0 4px; }
-.msg-usr .b-meta { text-align:right; }
-
-.typing-row {
-  display:flex; gap:8px; align-items:flex-end;
-  align-self:flex-start; margin-bottom:4px;
-  opacity:0; transition:opacity 0.3s;
-}
-.typing-row.in { opacity:1; }
-.typing-bub {
-  background:var(--surface); border-radius:18px 18px 18px 4px;
-  padding:12px 16px; box-shadow:var(--shadow-sm);
-  display:flex; gap:5px; align-items:center;
-}
-.typing-bub span {
-  width:6px; height:6px; border-radius:50%; background:var(--text-ter);
-  animation:td 1.2s infinite;
-}
-.typing-bub span:nth-child(2){animation-delay:0.2s}
-.typing-bub span:nth-child(3){animation-delay:0.4s}
-@keyframes td {
-  0%,60%,100%{opacity:0.3;transform:none} 30%{opacity:1;transform:translateY(-3px)}
-}
-
-.options-dock {
-  flex-shrink:0; background:var(--surface);
-  border-top:1px solid var(--border); padding:12px 16px 32px;
-}
-.od-label {
-  font-size:11px; font-weight:600; color:var(--text-ter);
-  letter-spacing:0.08em; margin-bottom:10px; text-transform:uppercase;
-}
-.fruit-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-.f-btn {
-  display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:5px; padding:12px 6px;
-  background:var(--surface2); border:1.5px solid var(--border);
-  border-radius:var(--r-md); cursor:pointer; transition:all 0.2s;
-}
-.f-btn:active { transform:scale(0.93); }
-.f-btn.selected { background:var(--accent-lt); border-color:var(--accent); }
-.f-btn.distort { animation:crumble 0.55s ease forwards; pointer-events:none; }
-.f-btn.gone    { visibility:hidden; pointer-events:none; }
-@keyframes crumble {
-  0%  {transform:scale(1) skewX(0);opacity:1;filter:none}
-  40% {transform:scale(1.1) skewX(-10deg);opacity:0.7;filter:blur(1px) saturate(2)}
-  100%{transform:scale(0.05) skewX(20deg) rotate(40deg);opacity:0;filter:blur(10px)}
-}
-.f-emoji { font-size:24px; line-height:1; pointer-events:none; }
-.f-label { font-size:11px; font-weight:500; color:var(--text-sec); pointer-events:none; }
-.f-btn.selected .f-label { color:var(--accent); }
-
-/* ── PROXIMITY ── */
-#phase-proximity {
-  position:fixed; inset:0; z-index:16;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:flex-end;
-  padding-bottom:0; gap:0;
-  opacity:0; pointer-events:none; transition:opacity 0.6s;
-}
-#phase-proximity.active { opacity:1; pointer-events:all; }
-
-.prox-pill-row {
-  position:fixed; top:52px; left:16px; right:16px;
-  display:flex; justify-content:center; pointer-events:none;
-}
-.prox-pill {
-  background:rgba(255,255,255,0.92); backdrop-filter:blur(12px);
-  padding:10px 22px; border-radius:var(--r-pill);
-  box-shadow:var(--shadow-md); font-size:14px; font-weight:500;
-  color:var(--text-pri); text-align:center; max-width:300px;
-  transition:opacity 0.4s;
-}
-
-.float-fruits {
-  position:fixed; top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  display:flex; gap:16px; flex-wrap:wrap;
-  justify-content:center; max-width:260px; pointer-events:none;
-}
-.ff {
-  font-size:36px; display:inline-block;
-  filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-  transition:all 0.7s cubic-bezier(0.34,1.56,0.64,1);
-}
-
-.prox-card {
-  background:rgba(255,255,255,0.94); backdrop-filter:blur(16px);
-  border-radius:var(--r-lg) var(--r-lg) 0 0;
-  width:100%; padding:20px 24px 36px;
-  box-shadow:0 -4px 24px rgba(0,0,0,0.12);
-  flex-shrink:0;
-}
-.prox-dist-row { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
-.rings-sm {
-  width:46px; height:46px; position:relative;
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
-}
-.dr {
-  position:absolute; border-radius:50%;
-  border:1.5px solid rgba(255,92,92,0.15); transition:all 0.4s;
-}
-.dr1{width:12px;height:12px} .dr2{width:24px;height:24px}
-.dr3{width:36px;height:36px} .dr4{width:46px;height:46px}
-.ddot {
-  width:8px; height:8px; border-radius:50%; background:var(--accent); z-index:2;
-  box-shadow:0 0 10px rgba(255,92,92,0.6); transition:box-shadow 0.4s;
-}
-.prox-info { flex:1; }
-.prox-val   { font-size:20px; font-weight:700; }
-.prox-lbl   { font-size:11px; color:var(--text-sec); margin-top:1px; }
-.prox-bar   { height:4px; background:var(--border); border-radius:999px; overflow:hidden; }
-.prox-fill  { height:100%; background:var(--accent); width:0%; border-radius:999px; transition:width 0.3s; }
-
-/* Dev slider */
-#dev-wrap {
-  position:fixed; bottom:0; left:0; right:0; z-index:99;
-  background:rgba(255,255,255,0.97); padding:10px 20px 32px;
-  border-top:1px solid var(--border); display:none;
-}
-#dev-wrap.show { display:block; }
-.dev-lbl { font-size:11px; color:var(--text-ter); text-align:center; margin-bottom:6px; }
-#dev-slider {
-  -webkit-appearance:none; width:100%; height:4px;
-  background:var(--border); border-radius:999px; outline:none; cursor:pointer;
-}
-#dev-slider::-webkit-slider-thumb {
-  -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
-  background:var(--accent); border:3px solid white; box-shadow:var(--shadow-sm);
-}
-
-/* ── REVEAL ── */
-#screen-reveal {
-  z-index:20; background:#0a0a0a;
-  justify-content:flex-start; overflow-y:auto; padding-bottom:40px;
-}
-.reveal-dark-top {
-  width:100%; height:220px; flex-shrink:0; background:#111;
-  display:flex; align-items:flex-end; justify-content:center;
-}
-.polaroid {
-  width:calc(100% - 48px); max-width:320px;
-  background:white; padding:10px 10px 44px;
-  box-shadow:var(--shadow-lg); transform:rotate(-1.8deg);
-  margin-top:-32px; flex-shrink:0; align-self:center; position:relative; z-index:2;
-}
-.pol-img {
-  width:100%; aspect-ratio:1; background:#1c1c1c;
-  display:flex; align-items:center; justify-content:center;
-  overflow:hidden; position:relative;
-}
-.pol-real { width:100%; height:100%; object-fit:cover; filter:saturate(0.5) brightness(0.7); display:none; }
-.pol-real.loaded { display:block; }
-.pol-gen  {
-  font-size:110px;
-  filter:saturate(0.35) brightness(0.6);
-  animation:sglow 7s ease-in-out infinite;
-}
-@keyframes sglow {
-  0%,100%{filter:saturate(0.3) brightness(0.55);transform:scale(1)}
-  50%{filter:saturate(0.5) brightness(0.72);transform:scale(1.03)}
-}
-.pol-vig {
-  position:absolute; inset:0;
-  background:radial-gradient(ellipse at 50% 40%,transparent 25%,rgba(0,0,0,0.75) 100%);
-}
-.pol-caption { padding:8px 4px 0; font-size:13px; color:#444; text-align:center; }
-.pol-ts      { font-size:10px; color:#bbb; text-align:right; margin-top:4px; font-family:monospace; }
-
-.reveal-body {
-  width:100%; max-width:360px; align-self:center;
-  padding:24px 24px 0; display:flex; flex-direction:column; gap:16px;
-  position:relative; z-index:2;
-}
-.rq-card {
-  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
-  border-left:3px solid var(--accent); border-radius:var(--r-md); padding:20px;
-  opacity:0; transform:translateY(14px); transition:all 0.7s ease 0.3s;
-}
-.rq-card.in { opacity:1; transform:none; }
-.rq-text { font-size:16px; font-weight:300; line-height:2; color:rgba(255,255,255,0.9); }
-.r-beh {
-  font-size:11px; color:rgba(255,255,255,0.28); font-family:monospace; letter-spacing:0.1em;
-  opacity:0; transition:opacity 0.7s ease 1s;
-}
-.r-beh.in { opacity:1; }
-.r-sub {
-  font-size:11px; color:rgba(255,255,255,0.22); letter-spacing:0.15em; line-height:2;
-  opacity:0; transition:opacity 0.7s ease 1.5s;
-}
-.r-sub.in { opacity:1; }
-.r-restart {
-  padding:14px; background:rgba(255,255,255,0.07);
-  border:1px solid rgba(255,255,255,0.18); border-radius:var(--r-pill);
-  color:rgba(255,255,255,0.45); font-size:14px; cursor:pointer;
-  opacity:0; transition:all 0.7s ease 2s; letter-spacing:0.05em;
-}
-.r-restart.in { opacity:1; }
-.r-restart:active { background:rgba(255,255,255,0.15); color:white; }
+/* --- 隱藏 MindAR 預設 UI --- */
+.mindar-ui-overlay { display: none !important; }
 </style>
 </head>
 <body>
 
 <script>
 const CONFIG = {
-  MIND_FILE:      'targets.mind',
-  REVEAL_PHOTO:   'reveal.jpg',
-  MARKER_WIDTH_M: 0.12,
-  DIST_FAR:    1.8,
-  DIST_MID:    1.0,
-  DIST_CLOSE:  0.5,
-  DIST_REVEAL: 0.28,
-  DEV_MODE:    true,
+  MIND_FILE: 'targets.mind',
+  REVEAL_DIST: 0.1, // 10公分觸發
+  FRUITS: ['🍓','🍋','🍇','🍊','🫐','🍈','🍍','🥝','🍒','🍑'],
+  DEV_MODE: true // 改成 false 隱藏距離標籤
 };
 </script>
 
-<!-- AR camera -->
+<div class="screen active" id="screen-entry">
+  <div class="delivery-header">📦 配送助手 (Delivery Helper)</div>
+  <div class="status-card">
+    <div class="status-title">包裹編號 #882-9410</div>
+    <div class="status-main"><div class="status-dot"></div> 等待掃描確認</div>
+  </div>
+  
+  <p style="width:100%; font-size:13px; color:var(--text-sec); margin-bottom:10px;">新訊息</p>
+  <div class="msg-bubble-preview" onclick="startExperience()">
+    <div class="avatar-blur"></div>
+    <div class="msg-content">
+      <div class="msg-name">陌生用戶</div>
+      <div class="msg-text">嘿，你是外送員嗎？能幫我確認一下包裹嗎...</div>
+    </div>
+    <div style="color:var(--blue); font-size:12px;">剛剛</div>
+  </div>
+  
+  <button onclick="startExperience()" style="width:100%; margin-top:auto; padding:18px; border:none; background:var(--blue); color:white; border-radius:15px; font-weight:700; font-size:16px;">開啟包裹追蹤</button>
+</div>
+
 <div id="ar-container"></div>
 
-<!-- ══ ENTRY ══ -->
-<div class="screen active" id="screen-entry">
-  <div class="entry-scroll">
-    <div class="notif-bar">
-      <div class="notif-dot"></div>
-      <span class="notif-text">快遞通知</span>
-      <span class="notif-time" id="entry-time">--:--</span>
-    </div>
-
-    <div class="delivery-card">
-      <div class="dc-top">
-        <div class="dc-icon">📦</div>
-        <div>
-          <div class="dc-title">快遞包裹抵達</div>
-          <div class="dc-sub">您的包裹已送達指定地點<br>請盡快取件確認</div>
-        </div>
-      </div>
-      <div class="dc-status">
-        <div class="dc-status-dot"></div>
-        <span>等待確認取件 · 需現場掃描</span>
-      </div>
-      <div class="dc-addr">📍 &nbsp;包裹特徵：貼有草莓圖案</div>
-    </div>
-
-    <div class="msg-card" onclick="startAR()">
-      <div class="mc-avatar">
-        🍓
-        <div class="mc-badge">1</div>
-      </div>
-      <div class="mc-body">
-        <div class="mc-name">陌生來電 · 未知號碼</div>
-        <div class="mc-preview">嘿，那個箱子⋯⋯能幫我看一下嗎？</div>
-      </div>
-      <div class="mc-time">剛剛</div>
-    </div>
-
-    <button class="open-btn" onclick="startAR()">開啟鏡頭確認包裹</button>
-    <div class="entry-hint">
-      需要相機權限 · 請使用 HTTPS 環境<br>
-      建議 iPhone Safari / Android Chrome
-    </div>
-  </div>
-</div>
-
-<!-- ══ LOADING ══ -->
-<div class="screen" id="screen-loading">
-  <div class="spin"></div>
-  <div class="spin-label">正在啟動 AR 引擎⋯⋯</div>
-</div>
-
-<!-- ══ SCAN ══ -->
-<div class="screen" id="screen-scan">
-  <div class="viewfinder">
-    <div class="vc tl"></div><div class="vc tr"></div>
-    <div class="vc bl"></div><div class="vc br"></div>
-    <div class="vsweep"></div>
-  </div>
-  <div class="scan-inst">對準箱子上的草莓圖案</div>
-  <div class="scan-sub">偵測到圖案後自動繼續<br>保持手機穩定</div>
-</div>
-
-<!-- 掃描水果閃爍 overlay -->
-<div id="sfo">
-  <div class="sfo-e" id="sfo-e">🍓</div>
-  <div class="sfo-label">SCANNING LABELS⋯</div>
-</div>
-
-<!-- ══ CHAT ══ -->
-<div id="chat-panel">
-  <div class="chat-hdr">
-    <div class="ch-back">‹</div>
-    <div class="ch-avt">🍓<div class="ch-online"></div></div>
-    <div>
-      <div class="ch-name">陌生來電</div>
-      <div class="ch-status">正在線上</div>
+<div id="ar-overlay-ui" class="screen">
+  <div class="camera-header">
+    <div class="avatar-blur" id="chat-avatar" style="width:35px; height:35px;"></div>
+    <div style="flex:1">
+      <div style="font-size:14px; font-weight:600;" id="chat-name">陌生用戶</div>
+      <div style="font-size:11px; color:#2ecc71;">● 正在觀察中</div>
     </div>
   </div>
 
   <div class="chat-feed" id="chat-feed">
-    <div class="date-div"><span>今天</span></div>
-    <div class="typing-row" id="typing">
-      <div class="m-avt">🍓</div>
-      <div class="typing-bub"><span></span><span></span><span></span></div>
     </div>
-  </div>
 
-  <div class="options-dock" id="options-dock" style="display:none">
-    <div class="od-label">選一個最接近的標籤</div>
-    <div class="fruit-grid">
-      <div class="f-btn" data-label="喜悅草莓" onclick="pickFruit(this)"><div class="f-emoji">🍓</div><div class="f-label">喜悅</div></div>
-      <div class="f-btn" data-label="悲傷檸檬" onclick="pickFruit(this)"><div class="f-emoji">🍋</div><div class="f-label">悲傷</div></div>
-      <div class="f-btn" data-label="憤怒葡萄" onclick="pickFruit(this)"><div class="f-emoji">🍇</div><div class="f-label">憤怒</div></div>
-      <div class="f-btn" data-label="焦慮橘子" onclick="pickFruit(this)"><div class="f-emoji">🍊</div><div class="f-label">焦慮</div></div>
-      <div class="f-btn" data-label="孤獨藍莓" onclick="pickFruit(this)"><div class="f-emoji">🫐</div><div class="f-label">孤獨</div></div>
-      <div class="f-btn" data-label="平靜蜜瓜" onclick="pickFruit(this)"><div class="f-emoji">🍈</div><div class="f-label">平靜</div></div>
-    </div>
-  </div>
+  <div id="fruit-scanner" class="fruit-scanner-label">🍓</div>
+  <div id="dist-debug" class="dist-hud"></div>
 </div>
 
-<!-- ══ PROXIMITY ══ -->
-<div id="phase-proximity">
-  <div class="prox-pill-row">
-    <div class="prox-pill" id="prox-pill">「再靠近一點，你才能看清楚⋯⋯」</div>
-  </div>
-  <div class="float-fruits" id="float-fruits">
-    <span class="ff">🍓</span><span class="ff">🍋</span><span class="ff">🍇</span>
-    <span class="ff">🍊</span><span class="ff">🫐</span><span class="ff">🍈</span>
-  </div>
-  <div class="prox-card">
-    <div class="prox-dist-row">
-      <div class="rings-sm">
-        <div class="dr dr4"></div><div class="dr dr3"></div>
-        <div class="dr dr2"></div><div class="dr dr1"></div>
-        <div class="ddot"></div>
-      </div>
-      <div class="prox-info">
-        <div class="prox-val" id="prox-val">-- m</div>
-        <div class="prox-lbl">與箱子的距離</div>
-      </div>
-    </div>
-    <div class="prox-bar"><div class="prox-fill" id="prox-fill"></div></div>
-  </div>
-</div>
-
-<!-- Dev slider -->
-<div id="dev-wrap">
-  <div class="dev-lbl">[ DEV MODE ] 模擬距離 — 部署前移除</div>
-  <input type="range" id="dev-slider" min="0" max="200" value="200" oninput="devSim(this.value)">
-</div>
-
-<!-- ══ REVEAL ══ -->
 <div class="screen" id="screen-reveal">
-  <div class="reveal-dark-top"></div>
   <div class="polaroid">
-    <div class="pol-img">
-      <img class="pol-real" id="real-photo" src="" alt="">
-      <div class="pol-gen" id="gen-photo">🍓</div>
-      <div class="pol-vig"></div>
+    <div class="pol-photo">
+      <div id="reveal-placeholder" style="font-size:80px;">🍓</div>
+      <img id="reveal-img" src="reveal.jpg" style="display:none;" onerror="this.style.display='none'">
     </div>
-    <div class="pol-caption">不在選項裡</div>
-    <div class="pol-ts" id="photo-ts">--:--:--</div>
+    <div class="pol-text">
+      <p id="reveal-quote"></p>
+      <p style="margin-top:10px; color:#aaa; font-size:9px;">RAW_DATA_FROM_INSIDE</p>
+    </div>
   </div>
-  <div class="reveal-body">
-    <div class="rq-card" id="rq-card">
-      <div class="rq-text" id="rq-text">
-        「你那麼快就想找到答案⋯⋯<br>但你現在看到了，<br>答案不在選項裡。」
-      </div>
-    </div>
-    <div class="r-beh" id="r-beh">// BEHAVIOR LOG: —</div>
-    <div class="r-sub" id="r-sub">OUT OF OPTIONS · 不在選項裡<br>互動裝置作品 / WEB AR</div>
-    <button class="r-restart" id="r-restart" onclick="restart()">↺ &nbsp;重新體驗</button>
+  
+  <div style="position:fixed; bottom:40px; text-align:center;">
+    <button onclick="location.reload()" style="background:none; border:1px solid #444; color:#666; padding:8px 20px; border-radius:20px; font-size:12px;">重新開啟</button>
   </div>
 </div>
 
-<!-- ══ MAIN SCRIPT ══ -->
-<script>
-const S = {
-  phase:'entry', fruitsChosen:0, selectedLabels:[],
-  approachStartTime:0, approachDuration:0, hesitationCount:0,
-  minDistReached:999, lastDist:999, lastDistTime:0,
-  markerVisible:false, estimatedDist:999, mindar:null,
-};
+<script type="module">
+let mindarThree = null;
+let isTracking = false;
+let currentDist = 999;
+let fruitInterval = null;
+let state = { phase: 'chat', hasApproached: false };
 
-const CHAT = [
-  {role:'sys', text:'嘿，不好意思，你是外送員嗎？'},
-  {role:'sys', text:'我剛收到取件通知說包裹到了，但我現在被困在外面回不去⋯⋯'},
-  {role:'sys', text:'那個箱子上有貼草莓嗎？能幫我確認一下包裹現在的狀態嗎？'},
-  {role:'sys', text:'你覺得⋯⋯它現在比較像哪一種？'},
-  {role:'show_options'},
-];
+// --- 初始化 AR 與環境 ---
+window.startExperience = async () => {
+  document.getElementById('screen-entry').classList.remove('active');
+  document.getElementById('ar-container').classList.add('active');
+  document.getElementById('ar-overlay-ui').classList.add('active');
 
-const REPLIES = {
-  '喜悅草莓':['你真的覺得是這樣嗎？','也許是喜悅。但我不確定那是全部。'],
-  '悲傷檸檬':['嗯。你是這樣看的。','有時候悲傷跟別的東西長得很像。'],
-  '憤怒葡萄':['憤怒⋯⋯可能吧。','或者是別的什麼，被誤認為憤怒。'],
-  '焦慮橘子':['你感覺到焦慮了嗎？','或許只是⋯⋯不確定。'],
-  '孤獨藍莓':['孤獨。','有時候孤獨跟存在感很近。'],
-  '平靜蜜瓜':['平靜⋯⋯真的嗎？','有些平靜是真的，有些只是沉默。'],
-};
-const PROX = {
-  far:'「再靠近一點，你才能看清楚⋯⋯」',
-  mid:'「繼續靠近⋯⋯」', midHes:'「你在猶豫什麼？」',
-  close:'「標籤⋯⋯開始消失了。」', very:'「只剩下⋯⋯」',
-};
-const FRUITS_ALL = ['🍓','🍋','🍇','🍊','🫐','🍈','🍍','🥝','🍑','🍒'];
+  mindarThree = new window.MindARThree({
+    container: document.getElementById('ar-container'),
+    imageTargetSrc: CONFIG.MIND_FILE,
+    maxTrack: 1,
+    uiLoading: "no", uiScanning: "no"
+  });
 
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id)?.classList.add('active');
-}
-setInterval(()=>{
-  const n=new Date(),el=document.getElementById('entry-time');
-  if(el) el.textContent=`${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`;
-},1000);
-
-// Fruit flicker
-let flickTmr=null;
-function startFlicker(){
-  document.getElementById('sfo').classList.add('active');
-  flickTmr=setInterval(()=>{
-    document.getElementById('sfo-e').textContent=FRUITS_ALL[Math.floor(Math.random()*FRUITS_ALL.length)];
-  },200);
-}
-function stopFlicker(){
-  clearInterval(flickTmr);
-  document.getElementById('sfo').classList.remove('active');
-}
-
-// Rear camera
-async function rearCam(){
-  try{
-    const d=await navigator.mediaDevices.enumerateDevices();
-    const c=d.filter(x=>x.kind==='videoinput');
-    if(c.length<=1)return undefined;
-    const r=c.find(x=>/back|rear|environment/i.test(x.label));
-    return r?r.deviceId:c[c.length-1].deviceId;
-  }catch{return undefined;}
-}
-
-// Start AR
-async function startAR(){
-  show('screen-loading'); S.phase='loading';
-  try{
-    await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-  }catch{
-    alert('需要相機權限才能繼續。');
-    show('screen-entry'); return;
+  const { renderer, scene, camera } = mindarThree;
+  
+  // 重要：修正 Three.js 版本屬性衝突
+  if (renderer.outputColorSpace !== undefined) {
+    renderer.outputColorSpace = window.THREE.SRGBColorSpace;
   }
-  await new Promise(r=>{
-    if(window._mindARReady)return r();
-    window.addEventListener('mindar-ready',r,{once:true});
-  });
-  S.mindar=new window.MindARThree({
-    container:document.getElementById('ar-container'),
-    imageTargetSrc:CONFIG.MIND_FILE,
-    maxTrack:1, uiLoading:'no', uiScanning:'no', uiError:'no',
-    cameraDeviceId:await rearCam(),
-  });
-  const{renderer,scene,camera}=S.mindar;
-  if(renderer.outputColorSpace!==undefined)
-    renderer.outputColorSpace=window.THREE.SRGBColorSpace;
 
-  const anchor=S.mindar.addAnchor(0);
-  anchor.onTargetFound=()=>{
-    S.markerVisible=true; startFlicker();
-    if(S.phase==='scan') enterChat();
+  const anchor = mindarThree.addAnchor(0);
+
+  anchor.onTargetFound = () => {
+    isTracking = true;
+    startFruitFlicker();
   };
-  anchor.onTargetLost=()=>{
-    S.markerVisible=false;
-    if(S.phase==='scan') stopFlicker();
+  anchor.onTargetLost = () => {
+    isTracking = false;
+    stopFruitFlicker();
   };
 
-  document.getElementById('ar-container').classList.add('active');
-  try{await S.mindar.start();}catch(e){console.warn(e);}
-  show('screen-scan'); S.phase='scan';
-  if(CONFIG.DEV_MODE) document.getElementById('dev-wrap').classList.add('show');
-  renderer.setAnimationLoop(()=>{
-    renderer.render(scene,camera);
-    if(S.markerVisible&&S.phase!=='entry'&&S.phase!=='loading') estimateDist(anchor);
-  });
-}
-
-function estimateDist(anchor){
-  if(!anchor.group||!window.THREE)return;
-  const cam=S.mindar.camera;
-  const l=new window.THREE.Vector3(-0.5,0,0);
-  const r=new window.THREE.Vector3(0.5,0,0);
-  l.applyMatrix4(anchor.group.matrixWorld);
-  r.applyMatrix4(anchor.group.matrixWorld);
-  l.project(cam); r.project(cam);
-  const cW=S.mindar.renderer.domElement.clientWidth;
-  const px=Math.abs(r.x-l.x)*cW/2;
-  if(px<5)return;
-  const fov=(cam.fov*Math.PI)/180;
-  const fc=(cW/2)/Math.tan(fov/2);
-  const dist=(CONFIG.MARKER_WIDTH_M*fc)/px;
-  processDist(S.estimatedDist*0.75+dist*0.25);
-}
-
-function processDist(dist){
-  const now=Date.now(), delta=S.lastDist-dist;
-  if(delta>0.02&&dist<CONFIG.DIST_FAR){
-    if(!S.approachStartTime)S.approachStartTime=now;
-    S.approachDuration+=now-(S.lastDistTime||now);
-  }
-  if(delta<-0.06&&dist<CONFIG.DIST_MID)S.hesitationCount++;
-  if(dist<S.minDistReached)S.minDistReached=dist;
-  S.lastDist=dist; S.lastDistTime=now; S.estimatedDist=dist;
-  updateProxUI(dist);
-  if(dist<=CONFIG.DIST_REVEAL&&S.phase==='proximity')triggerReveal();
-}
-
-function devSim(v){
-  S.markerVisible=true;
-  if(S.phase==='scan') enterChat();
-  processDist(v/100);
-}
-
-// Chat
-let chatRunning=false;
-function enterChat(){
-  stopFlicker(); S.phase='chat';
-  document.getElementById('ar-container').classList.remove('active');
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('chat-panel').classList.add('active');
-  if(!chatRunning){chatRunning=true; runChat(0);}
-}
-function runChat(i){
-  if(i>=CHAT.length)return;
-  const step=CHAT[i];
-  if(step.role==='show_options'){
-    setTimeout(()=>{document.getElementById('options-dock').style.display='block';scrollFeed();},400);
-    return;
-  }
-  showTyping();
-  const d=900+step.text.length*28+Math.random()*400;
-  setTimeout(()=>{hideTyping();addMsg('sys',step.text);setTimeout(()=>runChat(i+1),800+Math.random()*400);},d);
-}
-function addMsg(role,text){
-  const feed=document.getElementById('chat-feed');
-  const tdots=document.getElementById('typing');
-  const div=document.createElement('div');
-  const isSys=role==='sys';
-  div.className=`msg msg-${isSys?'sys':'usr'}`;
-  const now=new Date();
-  const ts=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-  div.innerHTML=isSys
-    ?`<div class="m-avt">🍓</div><div><div class="bubble">${text.replace(/\n/g,'<br>')}</div><div class="b-meta">${ts}</div></div>`
-    :`<div><div class="bubble">${text.replace(/\n/g,'<br>')}</div><div class="b-meta">${ts}</div></div>`;
-  feed.insertBefore(div,tdots);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>div.classList.add('in')));
-  scrollFeed();
-}
-function showTyping(){document.getElementById('typing').classList.add('in');scrollFeed();}
-function hideTyping(){document.getElementById('typing').classList.remove('in');}
-function scrollFeed(){const f=document.getElementById('chat-feed');setTimeout(()=>{f.scrollTop=f.scrollHeight;},80);}
-
-function pickFruit(el){
-  if(el.classList.contains('gone')||el.classList.contains('distort'))return;
-  const label=el.dataset.label;
-  S.selectedLabels.push(label); S.fruitsChosen++;
-  el.classList.add('selected');
-  addMsg('usr',label);
-  const rs=REPLIES[label]||['⋯⋯'];
-  const reply=rs[Math.floor(Math.random()*rs.length)];
-  showTyping();
-  setTimeout(()=>{
-    hideTyping(); addMsg('sys',reply);
-    if(S.fruitsChosen>=2){
-      setTimeout(()=>{
-        addMsg('sys','你靠近一點，可能會更清楚。');
-        setTimeout(enterProximity,1600);
-      },900);
-    }
-  },700+Math.random()*400);
-}
-
-// Proximity
-function enterProximity(){
-  S.phase='proximity'; S.approachStartTime=Date.now();
-  document.getElementById('chat-panel').classList.remove('active');
-  document.getElementById('ar-container').classList.add('active');
-  document.getElementById('phase-proximity').classList.add('active');
-}
-function updateProxUI(dist){
-  if(S.phase!=='proximity')return;
-  document.getElementById('prox-val').textContent=dist.toFixed(2)+' m';
-  const pct=Math.max(0,Math.min(100,(1-(dist-CONFIG.DIST_REVEAL)/(CONFIG.DIST_FAR-CONFIG.DIST_REVEAL))*100));
-  document.getElementById('prox-fill').style.width=pct+'%';
-  const prox=pct/100;
-  const rings=document.querySelectorAll('.dr');
-  [0.2,0.45,0.65,0.88].forEach((t,i)=>{
-    const on=prox>t;
-    rings[i].style.borderColor=on?`rgba(255,92,92,${0.2+prox*0.6})`:'rgba(255,92,92,0.1)';
-    rings[i].style.opacity=on?'1':'0.3';
-  });
-  document.querySelector('.ddot').style.boxShadow=`0 0 ${8+prox*20}px rgba(255,92,92,${0.5+prox*0.4})`;
-  const pill=document.getElementById('prox-pill');
-  if(dist>CONFIG.DIST_MID)pill.textContent=PROX.far;
-  else if(dist>CONFIG.DIST_CLOSE)pill.textContent=S.hesitationCount>1?PROX.midHes:PROX.mid;
-  else if(dist>CONFIG.DIST_REVEAL*1.5)pill.textContent=PROX.close;
-  else pill.textContent=PROX.very;
-  const decay=Math.max(0,Math.min(1,(CONFIG.DIST_MID-dist)/(CONFIG.DIST_MID-CONFIG.DIST_REVEAL)));
-  const toRm=Math.round(decay*6);
-  document.querySelectorAll('.ff').forEach((f,i)=>{
-    if(i<toRm){
-      if(!f.classList.contains('gone')){f.classList.add('distort');setTimeout(()=>f.classList.add('gone'),550);}
-    }else{
-      const w=decay*0.45;
-      f.style.filter=`blur(${w*5}px) drop-shadow(0 4px 8px rgba(0,0,0,0.2))`;
-      f.style.transform=`scale(${1-w*0.25}) rotate(${w*18}deg)`;
-      f.style.opacity=`${1-w*0.55}`;
+  await mindarThree.start();
+  
+  renderer.setAnimationLoop(() => {
+    renderer.render(scene, camera);
+    if (isTracking) {
+      handleProximity(anchor);
     }
   });
+
+  runScript();
+};
+
+// --- 對話腳本系統 ---
+async function sendMsg(role, text) {
+  return new Promise(res => {
+    setTimeout(() => {
+      const feed = document.getElementById('chat-feed');
+      const row = document.createElement('div');
+      row.className = `msg-row ${role}`;
+      row.innerHTML = `<div class="bubble">${text}</div>`;
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+      res();
+    }, 1000);
+  });
 }
 
-// Reveal
-let revealDone=false;
-function triggerReveal(){
-  if(revealDone)return; revealDone=true; S.phase='reveal';
-  if(S.mindar){try{S.mindar.pause();}catch{}}
-  document.getElementById('ar-container').classList.remove('active');
-  document.getElementById('phase-proximity').classList.remove('active');
-  const fast=S.approachDuration<8000&&S.hesitationCount===0;
-  const hes=S.hesitationCount>=2;
-  let quote,tag;
-  if(fast){
-    quote='「你那麼快就想找到答案⋯⋯<br>但你現在看到了，<br>答案不在選項裡。」';
-    tag='// BEHAVIOR: 快速靠近 · 未猶豫';
-  }else if(hes){
-    quote='「你來了又退，退了又來。<br>其實你一直知道，<br>沒有哪個標籤是對的。」';
-    tag='// BEHAVIOR: 猶豫 × '+S.hesitationCount;
-  }else{
-    quote='「慢慢靠近——<br>你感覺到了嗎？<br>當選項消失，才出現真實。」';
-    tag='// BEHAVIOR: 緩慢靠近';
-  }
-  document.getElementById('rq-text').innerHTML=quote;
-  document.getElementById('r-beh').textContent=tag;
-  const n=new Date();
-  document.getElementById('photo-ts').textContent=
-    [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>v.toString().padStart(2,'0')).join(':');
-  if(CONFIG.REVEAL_PHOTO){
-    const img=document.getElementById('real-photo');
-    img.src=CONFIG.REVEAL_PHOTO;
-    img.onload=()=>{img.classList.add('loaded');document.getElementById('gen-photo').style.display='none';};
-  }
-  show('screen-reveal');
-  setTimeout(()=>document.getElementById('rq-card').classList.add('in'),300);
-  setTimeout(()=>document.getElementById('r-beh').classList.add('in'),1000);
-  setTimeout(()=>document.getElementById('r-sub').classList.add('in'),1500);
-  setTimeout(()=>document.getElementById('r-restart').classList.add('in'),2100);
+async function runScript() {
+  await sendMsg("ai", "嘿，不好意思，你是外送員嗎？");
+  await sendMsg("ai", "我剛收到取件通知，但我現在不在家。");
+  await sendMsg("ai", "你能幫我確認一下包裹嗎？那個箱子上有貼草莓貼圖對吧？");
 }
 
-// Restart
-function restart(){
-  Object.assign(S,{phase:'entry',fruitsChosen:0,selectedLabels:[],
-    approachStartTime:0,approachDuration:0,hesitationCount:0,
-    minDistReached:999,lastDist:999,lastDistTime:0,
-    markerVisible:false,estimatedDist:999});
-  revealDone=false; chatRunning=false;
-  const feed=document.getElementById('chat-feed');
-  const tdots=document.getElementById('typing');
-  [...feed.children].forEach(c=>{if(c!==tdots&&!c.classList.contains('date-div'))c.remove();});
-  tdots.classList.remove('in');
-  document.getElementById('options-dock').style.display='none';
-  document.getElementById('chat-panel').classList.remove('active');
-  document.getElementById('phase-proximity').classList.remove('active');
-  document.getElementById('ar-container').classList.remove('active');
-  document.querySelectorAll('.ff').forEach(f=>{f.classList.remove('distort','gone');f.style.cssText='';});
-  document.querySelectorAll('.f-btn').forEach(f=>f.classList.remove('selected','distort','gone'));
-  ['rq-card','r-beh','r-sub','r-restart'].forEach(id=>document.getElementById(id)?.classList.remove('in'));
-  document.getElementById('real-photo').classList.remove('loaded');
-  if(S.mindar){try{S.mindar.stop();}catch{}S.mindar=null;}
-  if(CONFIG.DEV_MODE)document.getElementById('dev-slider').value=200;
-  stopFlicker(); show('screen-entry');
+// --- AR 視覺效果：隨機閃爍水果 ---
+function startFruitFlicker() {
+  const el = document.getElementById('fruit-scanner');
+  el.style.display = 'block';
+  if(fruitInterval) clearInterval(fruitInterval);
+  fruitInterval = setInterval(() => {
+    el.innerText = CONFIG.FRUITS[Math.floor(Math.random() * CONFIG.FRUITS.length)];
+  }, 200);
+}
+
+function stopFruitFlicker() {
+  document.getElementById('fruit-scanner').style.display = 'none';
+  clearInterval(fruitInterval);
+}
+
+// --- 距離感應邏輯 ---
+function handleProximity(anchor) {
+  // 估算距離 (Matrix 縮放比例)
+  const m = anchor.group.matrixWorld.elements;
+  const scale = Math.sqrt(m[0]**2 + m[1]**2 + m[2]**2);
+  const dist = 1.0 / (scale * 8.5); // 經驗參數
+  
+  if (CONFIG.DEV_MODE) {
+    document.getElementById('dist-debug').innerText = (dist*100).toFixed(1) + " cm";
+  }
+
+  // 近距離對話觸發
+  if (dist < 0.35 && !state.hasApproached) {
+    state.hasApproached = true;
+    sendMsg("ai", "對，就是那個。能不能...再幫我拍清楚一點？再靠近一點...");
+  }
+
+  // 10cm 終局觸發
+  if (dist < CONFIG.REVEAL_DIST && state.phase !== 'reveal') {
+    triggerReveal();
+  }
+}
+
+// --- 終局：真相大白 ---
+async function triggerReveal() {
+  state.phase = 'reveal';
+  stopFruitFlicker();
+  
+  // 停止 AR 並釋放相機
+  if (mindarThree) mindarThree.stop();
+  document.getElementById('ar-container').style.display = 'none';
+  document.getElementById('ar-overlay-ui').style.display = 'none';
+
+  // 顯示揭曉畫面
+  document.getElementById('screen-reveal').classList.add('active');
+  
+  const quoteEl = document.getElementById('reveal-quote');
+  const imgEl = document.getElementById('reveal-img');
+  const placeholder = document.getElementById('reveal-placeholder');
+
+  quoteEl.innerText = "正在傳送即時影像...";
+  
+  setTimeout(async () => {
+    // 檢查是否有真實圖片
+    const testImg = new Image();
+    testImg.src = "reveal.jpg";
+    testImg.onload = () => {
+      imgEl.style.display = "block";
+      placeholder.style.display = "none";
+    };
+    
+    quoteEl.innerText = "「你靠得這麼近，終於看清楚了吧？我不在那些選項裡，我就在裡面。」";
+    document.getElementById('chat-name').innerText = "🍓 (我在這裡)";
+    document.getElementById('chat-avatar').style.filter = "none";
+    document.getElementById('chat-avatar').innerText = "🍓";
+  }, 1500);
 }
 </script>
+
 </body>
 </html>
