@@ -75,6 +75,22 @@ html, body {
 }
 .screen.active { opacity:1; pointer-events:all; }
 
+/* ── SCREEN: CHAT (透明版) ── */
+#screen-chat {
+  background: transparent !important; /* 重要：讓相機畫面秀出來 */
+}
+
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px;
+  /* 讓訊息區域不要有背景色，或者半透明 */
+  background: transparent !important;
+}
+
+/* 確保訊息泡泡在透明背景下清晰 */
+.msg {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
 /* ── ENTRY ── */
 #screen-entry { justify-content:flex-start; padding:0; }
 .entry-scroll {
@@ -503,7 +519,7 @@ const CONFIG = {
   DIST_MID:    1.0,
   DIST_CLOSE:  0.5,
   DIST_REVEAL: 0.28,
-  DEV_MODE:    true,
+  DEV_MODE:    false,
 };
 </script>
 
@@ -596,7 +612,8 @@ const CONFIG = {
     </div>
   </div>
 
-  <div class="options-dock" id="options-dock" style="display:none">
+  <div id="ar-ui-layer" style="position:fixed; inset:0; z-index:5; pointer-events:none; display:none; flex-direction:column; justify-content:flex-end; padding-bottom:30px;">
+  <div class="options-dock" id="options-dock-ar" style="pointer-events:all; background:rgba(26,23,18,0.85); backdrop-filter:blur(10px); border-radius:16px 16px 0 0;">
     <div class="od-label">選一個最接近的標籤</div>
     <div class="fruit-grid">
       <div class="f-btn" data-label="喜悅草莓" onclick="pickFruit(this)"><div class="f-emoji">🍓</div><div class="f-label">喜悅</div></div>
@@ -757,9 +774,13 @@ async function startAR(){
   }
 
   const anchor=S.mindar.addAnchor(0);
-  anchor.onTargetFound=()=>{
-    S.markerVisible=true; startFlicker();
-    if(S.phase==='scan') enterChat();
+  // ─── 找到草莓圖案了 ───
+  anchor.onTargetFound = () => {
+      S.isTracking = true;
+      
+      // 原本是：startChatSequence();
+      // 修改為新的流程：
+      setupARTrackingView();
   };
   anchor.onTargetLost=()=>{
     S.markerVisible=false;
@@ -774,6 +795,27 @@ async function startAR(){
     renderer.render(scene,camera);
     if(S.markerVisible&&S.phase!=='entry'&&S.phase!=='loading') estimateDist(anchor);
   });
+}
+
+// ─── 新增：進入 AR 觀察與選擇模式 ───
+function setupARTrackingView() {
+    S.phase = 'viewing';
+    
+    // 1. 關閉掃描框
+    document.getElementById('screen-scan').classList.remove('active');
+    stopFlicker(); // 掃描成功後停止閃爍
+    
+    // 2. 開啟 ARUI 層（那一排水果選項）
+    document.getElementById('ar-ui-layer').style.display = 'flex';
+    
+    // 3. 開啟透明的對話面板 (修正 ID 為 chat-panel)
+    document.getElementById('chat-panel').classList.add('active');
+    
+    // 4. 啟動故事劇本
+    if(!chatRunning) {
+        chatRunning = true;
+        runChat(0);
+    }
 }
 
 function estimateDist(anchor){
@@ -793,17 +835,40 @@ function estimateDist(anchor){
   processDist(S.estimatedDist*0.75+dist*0.25);
 }
 
-function processDist(dist){
-  const now=Date.now(), delta=S.lastDist-dist;
-  if(delta>0.02&&dist<CONFIG.DIST_FAR){
-    if(!S.approachStartTime)S.approachStartTime=now;
-    S.approachDuration+=now-(S.lastDistTime||now);
-  }
-  if(delta<-0.06&&dist<CONFIG.DIST_MID)S.hesitationCount++;
-  if(dist<S.minDistReached)S.minDistReached=dist;
-  S.lastDist=dist; S.lastDistTime=now; S.estimatedDist=dist;
-  updateProxUI(dist);
-  if(dist<=CONFIG.DIST_REVEAL&&S.phase==='proximity')triggerReveal();
+// ─── 修改：處理距離感測與崩壞 ───
+function processDist(dist) {
+    S.currentDist = dist;
+    const now = Date.now();
+    
+    // ── HUD 更新 (測試用) ──
+    document.getElementById('dist-val-text').textContent = dist.toFixed(2) + ' m';
+
+    // ── (你的新需求) 靠近崩壞選項 ──
+    if (S.phase === 'viewing') {
+        const arOptionsGrid = document.querySelector('#ar-ui-layer .fruit-grid');
+        const arOptionsBtn = arOptionsGrid.querySelectorAll('.f-btn');
+        
+        // 從 MID (1.0m) 到 CLOSE (0.5m)，選項從 6 個崩壞到 0 個
+        const decay = Math.max(0, Math.min(1, (CONFIG.DIST_MID - dist) / (CONFIG.DIST_MID - CONFIG.DIST_CLOSE)));
+        const optionsToDestroy = Math.round(decay * arOptionsBtn.length);
+        
+        arOptionsBtn.forEach((f, i) => {
+            if (i < optionsToDestroy) {
+                if (!f.classList.contains('gone')) {
+                    if (!f.classList.contains('distort')) f.classList.add('distort');
+                    setTimeout(() => f.classList.add('gone'), 550); // crumble 動畫時間
+                }
+            } else {
+                // 如果後退，可以選擇讓它們復原，或者就不管它
+            }
+        });
+    }
+
+    // ── 臨界點偵測 ──
+    if (dist < CONFIG.REVEAL_DIST && S.phase === 'viewing') {
+        // 進入真實距離：跳出自拍
+        triggerFinalReveal();
+    }
 }
 
 function devSim(v){
@@ -912,41 +977,50 @@ function updateProxUI(dist){
 
 // Reveal
 let revealDone=false;
-function triggerReveal(){
-  if(revealDone)return; revealDone=true; S.phase='reveal';
-  if(S.mindar){try{S.mindar.pause();}catch{}}
-  document.getElementById('ar-container').classList.remove('active');
-  document.getElementById('phase-proximity').classList.remove('active');
-  const fast=S.approachDuration<8000&&S.hesitationCount===0;
-  const hes=S.hesitationCount>=2;
-  let quote,tag;
-  if(fast){
-    quote='「你那麼快就想找到答案⋯⋯<br>但你現在看到了，<br>答案不在選項裡。」';
-    tag='// BEHAVIOR: 快速靠近 · 未猶豫';
-  }else if(hes){
-    quote='「你來了又退，退了又來。<br>其實你一直知道，<br>沒有哪個標籤是對的。」';
-    tag='// BEHAVIOR: 猶豫 × '+S.hesitationCount;
-  }else{
-    quote='「慢慢靠近——<br>你感覺到了嗎？<br>當選項消失，才出現真實。」';
-    tag='// BEHAVIOR: 緩慢靠近';
-  }
-  document.getElementById('rq-text').innerHTML=quote;
-  document.getElementById('r-beh').textContent=tag;
-  const n=new Date();
-  document.getElementById('photo-ts').textContent=
-    [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>v.toString().padStart(2,'0')).join(':');
-  if(CONFIG.REVEAL_PHOTO){
-    const img=document.getElementById('real-photo');
-    img.src=CONFIG.REVEAL_PHOTO;
-    img.onload=()=>{img.classList.add('loaded');document.getElementById('gen-photo').style.display='none';};
-  }
-  show('screen-reveal');
-  setTimeout(()=>document.getElementById('rq-card').classList.add('in'),300);
-  setTimeout(()=>document.getElementById('r-beh').classList.add('in'),1000);
-  setTimeout(()=>document.getElementById('r-sub').classList.add('in'),1500);
-  setTimeout(()=>document.getElementById('r-restart').classList.add('in'),2100);
+// ─── 修改：最終揭曉（語氣翻轉）───
+async function triggerFinalReveal() {
+    if (revealDone) return;
+    revealDone = true;
+    S.phase = 'reveal';
+
+    // 視覺整理：關閉相機、關閉選項排
+    if (S.mindar) { try { S.mindar.pause(); } catch(e) {} }
+    document.getElementById('ar-container').classList.remove('active');
+    document.getElementById('ar-ui-layer').style.display = 'none';
+    document.getElementById('chat-panel').classList.remove('active'); 
+    
+    show('screen-reveal'); 
+
+    // 故事翻轉 (修正 role 為 'sys')
+    await addMsg('sys', '你⋯⋯真的靠過來了。');
+    await addMsg('sys', '選項是不是都不見了？');
+    await addMsg('sys', '對不起，我騙了你。我不是收外送的人。');
+    
+    await sendPhotoMessage();
+    
+    await addMsg('sys', '現在你知道了，我就在這裡。我不在那些選項裡。');
+    await addMsg('sys', '箱子始終沒有打開。');
 }
 
+// ─── 新增：傳送自拍照的對話訊息 ───
+async function sendPhotoMessage() {
+    return new Promise(res => {
+        const feed = document.getElementById('chat-feed');
+        const imgMsg = document.createElement('div');
+        imgMsg.className = "msg ai";
+        imgMsg.style.padding = "5px";
+        imgMsg.style.transform = "rotate(-2deg)"; // 點綴一下可爱
+        imgMsg.style.boxShadow = "0 5px 15px rgba(0,0,0,0.2)";
+        
+        // (可愛 fallback) 使用程式生成的自拍照
+        imgMsg.innerHTML = `<div style="font-size:100px; background:#222; padding:30px; border-radius:12px;">🍓</div>
+                            <p style="padding:10px; font-size:11px; text-align:right;">BOX_CAM_01.raw</p>`;
+        
+        feed.appendChild(imgMsg);
+        feed.scrollTop = feed.scrollHeight;
+        setTimeout(res, 2000); // 模擬照片上傳時間
+    });
+}
 // Restart
 function restart(){
   Object.assign(S,{phase:'entry',fruitsChosen:0,selectedLabels:[],
