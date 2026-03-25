@@ -410,7 +410,6 @@ const CONFIG = {
 <!-- ══ PRE-SCAN CHAT (before AR) ══ -->
 <div id="chat-pre">
   <div class="chat-hdr">
-    <div class="ch-back">‹</div>
     <div class="ch-avt">🍓<div class="ch-online"></div></div>
     <div>
       <div class="ch-name">陌生來電</div>
@@ -431,16 +430,8 @@ const CONFIG = {
 <div id="ar-ux">
   <!-- top area: scan frame / AR messages / distance pill -->
   <div class="ar-top">
-    <!-- scan viewfinder (hidden once target found) -->
-    <div id="scan-vf" class="scan-vf">
-      <div class="vc tl"></div><div class="vc tr"></div>
-      <div class="vc bl"></div><div class="vc br"></div>
-      <div class="vsweep"></div>
-    </div>
-    <div class="scan-label" id="scan-label">對準箱子上的草莓圖案</div>
-
-    <!-- AR message stream (shown after target found) -->
-    <div class="ar-msg-stream" id="ar-msgs" style="display:none"></div>
+    <!-- AR message stream (visible from start) -->
+    <div class="ar-msg-stream" id="ar-msgs"></div>
 
     <!-- distance pill top-right -->
     <div class="dist-pill" id="dist-pill">
@@ -466,7 +457,6 @@ const CONFIG = {
 <!-- ══ POST-AR REVEAL CHAT ══ -->
 <div id="chat-reveal">
   <div class="chat-hdr">
-    <div class="ch-back">‹</div>
     <div class="ch-avt">🍓<div class="ch-online"></div></div>
     <div>
       <div class="ch-name">陌生來電</div>
@@ -524,11 +514,11 @@ const REPLIES = {
   '平靜蜜瓜': ['平靜⋯⋯真的嗎？', '有些平靜是真的，有些只是沉默。'],
 };
 
-/* Proximity messages (float over AR) */
+/* Proximity messages (float over AR, triggered by distance) */
 const PROX_MSG = [
-  { dist: 1.4, text: '你現在有看到箱子了嗎？' },
-  { dist: 0.9, text: '靠近一點⋯⋯' },
-  { dist: 0.55, text: '再近一點，我需要你看清楚。' },
+  { dist: 1.4, text: '能看到箱子嗎？告訴我它現在的狀態。' },
+  { dist: 0.9, text: '再靠近一點⋯⋯' },
+  { dist: 0.55, text: '就快了。繼續靠近。' },
   { dist: 0.3, text: '⋯⋯' },
 ];
 
@@ -674,14 +664,11 @@ let targetFoundOnce = false;
 function onTargetFound() {
   if (targetFoundOnce) return;
   targetFoundOnce = true;
-
-  /* Hide scan frame, show message stream */
-  document.getElementById('scan-vf').style.display = 'none';
-  document.getElementById('scan-label').style.display = 'none';
-  document.getElementById('ar-msgs').style.display = 'flex';
+  /* First message when box is detected */
+  addARMsg('找到了⋯⋯就是這個箱子。');
 }
 
-/* ─── AR MESSAGES (float over camera) ── */
+/* ─── AR MESSAGES (float over camera, max 2 shown) ── */
 let proxMsgIdx = 0;
 function maybeShowProxMsg(dist) {
   if (proxMsgIdx >= PROX_MSG.length) return;
@@ -698,16 +685,28 @@ function addARMsg(text) {
   b.textContent = text;
   stream.appendChild(b);
   requestAnimationFrame(() => requestAnimationFrame(() => b.classList.add('in')));
-  /* Remove old messages if too many */
+  /* Keep only 2 messages visible — fade and remove older ones */
   const all = stream.querySelectorAll('.ar-bubble');
-  if (all.length > 3) all[0].style.opacity = '0';
+  if (all.length > 2) {
+    const old = all[0];
+    old.style.transition = 'opacity 0.4s';
+    old.style.opacity = '0';
+    setTimeout(() => old.remove(), 420);
+  }
 }
 
 /* ─── FRUIT PICK ─────────────────────── */
+/* Track which labels have already received a reply this session */
+const repliedLabels = new Set();
+
 function pickFruit(el) {
   if (!el || el.classList.contains('decay-5')) return;
   const label = el.dataset.label;
   if (!label) return;
+
+  /* Prevent duplicate reply for same label */
+  if (repliedLabels.has(label)) return;
+  repliedLabels.add(label);
 
   S.selectedLabels.push(label);
   S.fruitsChosen++;
@@ -716,7 +715,13 @@ function pickFruit(el) {
   /* Show reply as AR bubble */
   const rs = REPLIES[label] || ['⋯⋯'];
   const reply = rs[Math.floor(Math.random() * rs.length)];
-  setTimeout(() => addARMsg(reply), 400);
+  setTimeout(() => {
+    addARMsg(reply);
+    /* After 3 picks, prompt to approach */
+    if (S.fruitsChosen === 3) {
+      setTimeout(() => addARMsg('好了⋯⋯靠近一點，再靠近一點。'), 1400);
+    }
+  }, 400);
 }
 
 /* ─── DISTANCE ───────────────────────── */
@@ -763,14 +768,29 @@ function processDist(dist) {
   maybeShowProxMsg(dist);
   updateFruitDecay(dist);
 
-  if (dist <= CONFIG.DIST_REVEAL && S.phase === 'ar') triggerReveal();
+  /* Only trigger reveal after at least 3 fruit picks */
+  if (dist <= CONFIG.DIST_REVEAL && S.phase === 'ar') {
+    if (S.fruitsChosen >= 3) {
+      triggerReveal();
+    } else {
+      /* Not enough picks yet — nudge the user */
+      const remaining = 3 - S.fruitsChosen;
+      if (!window._nudgeSent) {
+        window._nudgeSent = true;
+        addARMsg(remaining === 2
+          ? '先選幾個標籤⋯⋯再靠近。'
+          : '再多選一個⋯⋯'
+        );
+        setTimeout(() => { window._nudgeSent = false; }, 3000);
+      }
+    }
+  }
 }
 
 function devSim(v) {
   const dist = v / 100;
   if (S.phase === 'pre-chat') {
     openARPhase();
-    onTargetFound();
     S.markerVisible = true;
   }
   if (S.phase === 'ar') {
@@ -868,25 +888,36 @@ function showRevealPhoto() {
 
   if (CONFIG.REVEAL_PHOTO) {
     const img = document.createElement('img');
-    img.src = CONFIG.REVEAL_PHOTO;
     img.alt = '箱內視角';
+    img.style.width = '100%';
+    img.style.display = 'block';
+    img.style.filter = 'saturate(0.4) brightness(0.65) blur(1px)';
+    /* Append first so it's in the DOM, then set src */
     photo.appendChild(img);
+    const cap = document.createElement('div');
+    cap.className = 'photo-cap';
+    cap.textContent = '從箱子裡面拍的⋯⋯';
+    photo.appendChild(cap);
+    wrap.appendChild(photo);
+    feed.insertBefore(wrap, tdots);
+    requestAnimationFrame(() => requestAnimationFrame(() => photo.classList.add('in')));
+    /* Set src after DOM insertion */
+    img.src = CONFIG.REVEAL_PHOTO;
   } else {
-    /* Fallback: generated photo */
+    /* Fallback: generated */
     const gen = document.createElement('div');
     gen.style.cssText = 'width:100%;aspect-ratio:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;filter:blur(2px) brightness(0.5)';
     gen.textContent = '🍓';
     photo.appendChild(gen);
+    const cap = document.createElement('div');
+    cap.className = 'photo-cap';
+    cap.textContent = '從箱子裡面拍的⋯⋯';
+    photo.appendChild(cap);
+    wrap.appendChild(photo);
+    feed.insertBefore(wrap, tdots);
+    requestAnimationFrame(() => requestAnimationFrame(() => photo.classList.add('in')));
   }
 
-  const cap = document.createElement('div');
-  cap.className = 'photo-cap';
-  cap.textContent = '從箱子裡面拍的⋯⋯';
-  photo.appendChild(cap);
-
-  wrap.appendChild(photo);
-  feed.insertBefore(wrap, tdots);
-  requestAnimationFrame(() => requestAnimationFrame(() => photo.classList.add('in')));
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
 }
 
