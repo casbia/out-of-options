@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" href="data:,">
 <title>不在選項裡 · Out of Options</title>
 
 <!--
@@ -194,19 +195,30 @@ html, body {
 .ar-msg-stream {
   position:absolute; top:52px; left:0; right:0;
   display:flex; flex-direction:column; align-items:flex-start;
-  gap:6px; padding:0 16px;
+  gap:8px; padding:0 16px;
   pointer-events:none;
 }
-.ar-bubble {
-  max-width:72%; padding:10px 14px;
-  font-size:14px; line-height:1.5;
-  background:rgba(255,255,255,0.92); color:var(--text-pri);
-  border-radius:16px 16px 16px 4px;
-  box-shadow:var(--sh-sm); backdrop-filter:blur(8px);
+/* Avatar + bubble row */
+.ar-bubble-row {
+  display:flex; align-items:flex-end; gap:8px;
+  max-width:88%;
   opacity:0; transform:translateY(6px);
   transition:all 0.35s ease;
 }
-.ar-bubble.in { opacity:1; transform:none; }
+.ar-bubble-row.in { opacity:1; transform:none; }
+.ar-avt {
+  width:28px; height:28px; border-radius:50%;
+  background:linear-gradient(135deg,#FFB347,#FF5C5C);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; flex-shrink:0;
+}
+.ar-bubble {
+  padding:10px 14px;
+  font-size:14px; line-height:1.5;
+  background:rgba(255,255,255,0.93); color:var(--text-pri);
+  border-radius:16px 16px 16px 4px;
+  box-shadow:var(--sh-sm); backdrop-filter:blur(10px);
+}
 
 /* Distance pill */
 .dist-pill {
@@ -252,12 +264,15 @@ html, body {
 .f-btn:active { transform:scale(0.93); }
 .f-btn.selected { background:var(--accent-lt); border-color:var(--accent); }
 
-/* Decay states */
-.f-btn.decay-1 { opacity:0.75; transform:scale(0.97) rotate(-1deg); filter:blur(0.3px); }
-.f-btn.decay-2 { opacity:0.52; transform:scale(0.93) rotate(2deg) skewX(-3deg); filter:blur(0.8px); }
-.f-btn.decay-3 { opacity:0.3; transform:scale(0.85) rotate(-4deg) skewX(5deg); filter:blur(2px) saturate(0.4); }
-.f-btn.decay-4 { opacity:0.1; transform:scale(0.6) rotate(8deg) skewX(-8deg); filter:blur(5px) saturate(0); pointer-events:none; }
-.f-btn.decay-5 { opacity:0; transform:scale(0.1) rotate(20deg); filter:blur(10px); pointer-events:none; transition:all 0.5s ease; }
+/* Decay states — smooth CSS transitions on each button */
+.f-btn { transition: opacity 0.6s ease, transform 0.6s ease, filter 0.6s ease; }
+.f-btn.decay-1 { opacity:0.7;  transform:scale(0.96) rotate(-1deg);              filter:blur(0.4px); }
+.f-btn.decay-2 { opacity:0.45; transform:scale(0.90) rotate(3deg)  skewX(-4deg); filter:blur(1.2px) saturate(0.6); }
+.f-btn.decay-3 { opacity:0.2;  transform:scale(0.75) rotate(-6deg) skewX(7deg);  filter:blur(3px)   saturate(0.2); pointer-events:none; }
+.f-btn.decay-gone {
+  opacity:0; transform:scale(0.05) rotate(25deg);
+  filter:blur(12px); pointer-events:none; cursor:default;
+}
 
 .f-emoji { font-size:22px; line-height:1; pointer-events:none; }
 .f-label { font-size:10px; font-weight:500; color:var(--text-sec); pointer-events:none; }
@@ -317,8 +332,7 @@ html, body {
 }
 .photo-bubble.in { opacity:1; transform:none; }
 .photo-bubble img {
-  width:100%; display:block;
-  filter:saturate(0.4) brightness(0.65) blur(1px);
+  width:100%; display:block; height:auto;
 }
 .photo-bubble .photo-cap {
   padding:8px 12px; font-size:12px;
@@ -358,8 +372,8 @@ const CONFIG = {
   DIST_FAR:    1.8,
   DIST_MID:    1.0,
   DIST_CLOSE:  0.5,
-  DIST_REVEAL: 0.10,   /* 10 cm */
-  DEV_MODE:    true,
+  DIST_REVEAL: 0.20,   /* 20 cm */
+  DEV_MODE:    false,
 };
 </script>
 
@@ -620,8 +634,8 @@ async function startAR() {
   });
 
   const { renderer, scene, camera } = S.mindar;
-  if (window.THREE.SRGBColorSpace) renderer.outputColorSpace = window.THREE.SRGBColorSpace;
-  else renderer.outputEncoding = 3001;
+  /* Three.js r152+ uses outputColorSpace */
+  renderer.outputColorSpace = window.THREE.SRGBColorSpace ?? 'srgb';
 
   const anchor = S.mindar.addAnchor(0);
   anchor.onTargetFound = () => {
@@ -680,13 +694,13 @@ function maybeShowProxMsg(dist) {
 }
 function addARMsg(text) {
   const stream = document.getElementById('ar-msgs');
-  const b = document.createElement('div');
-  b.className = 'ar-bubble';
-  b.textContent = text;
-  stream.appendChild(b);
-  requestAnimationFrame(() => requestAnimationFrame(() => b.classList.add('in')));
-  /* Keep only 2 messages visible — fade and remove older ones */
-  const all = stream.querySelectorAll('.ar-bubble');
+  const row = document.createElement('div');
+  row.className = 'ar-bubble-row';
+  row.innerHTML = `<div class="ar-avt">🍓</div><div class="ar-bubble">${text}</div>`;
+  stream.appendChild(row);
+  requestAnimationFrame(() => requestAnimationFrame(() => row.classList.add('in')));
+  /* Keep only 2 rows visible — fade and remove the oldest */
+  const all = stream.querySelectorAll('.ar-bubble-row');
   if (all.length > 2) {
     const old = all[0];
     old.style.transition = 'opacity 0.4s';
@@ -700,7 +714,7 @@ function addARMsg(text) {
 const repliedLabels = new Set();
 
 function pickFruit(el) {
-  if (!el || el.classList.contains('decay-5')) return;
+  if (!el || el.classList.contains('decay-gone') || el.classList.contains('decay-3')) return;
   const label = el.dataset.label;
   if (!label) return;
 
@@ -809,23 +823,41 @@ function updateDistUI(dist) {
 }
 
 /* ─── FRUIT DECAY ────────────────────── */
+/* Track which buttons have already been removed */
+const goneButtons = new Set();
+
 function updateFruitDecay(dist) {
-  /* decay starts at DIST_MID, completes at DIST_REVEAL */
+  /* decay: 0 at DIST_MID, 1 at DIST_REVEAL */
   const decay = Math.max(0, Math.min(1,
     (CONFIG.DIST_MID - dist) / (CONFIG.DIST_MID - CONFIG.DIST_REVEAL)
   ));
-  const btns = document.querySelectorAll('.f-btn');
+
+  const btns = Array.from(document.querySelectorAll('.f-btn'));
+  const total = btns.length;
+  /* Always keep at least 1 button visible */
+  const maxGone = total - 1;
+  /* How many should be gone at this decay level */
+  const targetGone = Math.min(maxGone, Math.floor(decay * total));
+
   btns.forEach((btn, i) => {
-    /* Each button gets progressively worse */
-    const threshold = i / btns.length; /* 0 → 5/6 */
-    const btnDecay  = Math.max(0, (decay - threshold * 0.3)); /* staggered */
-    btn.classList.remove('decay-1','decay-2','decay-3','decay-4','decay-5');
-    if (btnDecay <= 0)       return;
-    if (btnDecay < 0.15)     btn.classList.add('decay-1');
-    else if (btnDecay < 0.35) btn.classList.add('decay-2');
-    else if (btnDecay < 0.55) btn.classList.add('decay-3');
-    else if (btnDecay < 0.75) btn.classList.add('decay-4');
-    else                     btn.classList.add('decay-5');
+    if (goneButtons.has(i)) return; /* already removed */
+
+    /* Each button starts decaying offset by its position */
+    const btnStart = i / total * 0.6; /* stagger start */
+    const btnDecay = Math.max(0, (decay - btnStart) / (1 - btnStart));
+
+    /* Remove class flickering by only adding, never removing decay classes */
+    btn.classList.remove('decay-1','decay-2','decay-3');
+    if (btnDecay <= 0)        { /* visible, no class */ }
+    else if (btnDecay < 0.35) btn.classList.add('decay-1');
+    else if (btnDecay < 0.65) btn.classList.add('decay-2');
+    else if (btnDecay < 0.85) btn.classList.add('decay-3');
+    else if (i < targetGone && !goneButtons.has(i)) {
+      /* Mark as gone — permanent */
+      goneButtons.add(i);
+      btn.classList.remove('decay-1','decay-2','decay-3');
+      btn.classList.add('decay-gone');
+    }
   });
 }
 
@@ -889,10 +921,10 @@ function showRevealPhoto() {
   if (CONFIG.REVEAL_PHOTO) {
     const img = document.createElement('img');
     img.alt = '箱內視角';
-    img.style.width = '100%';
-    img.style.display = 'block';
-    img.style.filter = 'saturate(0.4) brightness(0.65) blur(1px)';
-    /* Append first so it's in the DOM, then set src */
+    img.style.cssText = 'width:100%;display:block;height:auto;filter:saturate(0.4) brightness(0.65) blur(1px);';
+    /* Build absolute URL relative to current page to avoid path issues */
+    const base = window.location.href.replace(/\/[^/]*$/, '/');
+    img.src = base + CONFIG.REVEAL_PHOTO;
     photo.appendChild(img);
     const cap = document.createElement('div');
     cap.className = 'photo-cap';
@@ -901,8 +933,6 @@ function showRevealPhoto() {
     wrap.appendChild(photo);
     feed.insertBefore(wrap, tdots);
     requestAnimationFrame(() => requestAnimationFrame(() => photo.classList.add('in')));
-    /* Set src after DOM insertion */
-    img.src = CONFIG.REVEAL_PHOTO;
   } else {
     /* Fallback: generated */
     const gen = document.createElement('div');
