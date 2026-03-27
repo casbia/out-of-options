@@ -220,6 +220,14 @@ html, body {
   box-shadow:var(--sh-sm); backdrop-filter:blur(10px);
 }
 
+.ar-typing-dot {
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  background:var(--text-ter); margin:0 2px;
+  animation:td 1.2s infinite;
+}
+.ar-typing-dot:nth-child(2){animation-delay:0.2s}
+.ar-typing-dot:nth-child(3){animation-delay:0.4s}
+
 /* Distance pill */
 .dist-pill {
   position:absolute; top:16px; right:16px;
@@ -634,8 +642,16 @@ async function startAR() {
   });
 
   const { renderer, scene, camera } = S.mindar;
-  /* Three.js r152+ uses outputColorSpace */
-  renderer.outputColorSpace = window.THREE.SRGBColorSpace ?? 'srgb';
+
+  /* MindAR internally sets outputEncoding which is removed in Three r152+.
+     We silence it by defining the deprecated property as a no-op setter,
+     then apply the correct colorSpace ourselves. */
+  Object.defineProperty(renderer, 'outputEncoding', {
+    set() {},          /* swallow MindAR's internal write */
+    get() { return 3001; },
+    configurable: true,
+  });
+  renderer.outputColorSpace = 'srgb';
 
   const anchor = S.mindar.addAnchor(0);
   anchor.onTargetFound = () => {
@@ -692,20 +708,64 @@ function maybeShowProxMsg(dist) {
     proxMsgIdx++;
   }
 }
+/* ─── AR MESSAGES — queued with typing delay, max 2 visible ── */
+let arMsgQueue = [];
+let arMsgBusy  = false;
+
 function addARMsg(text) {
+  arMsgQueue.push(text);
+  if (!arMsgBusy) drainARQueue();
+}
+
+async function drainARQueue() {
+  arMsgBusy = true;
+  while (arMsgQueue.length > 0) {
+    const text = arMsgQueue.shift();
+    await showARMsgWithTyping(text);
+    /* small pause between consecutive messages */
+    if (arMsgQueue.length > 0) await new Promise(r => setTimeout(r, 300));
+  }
+  arMsgBusy = false;
+}
+
+async function showARMsgWithTyping(text) {
   const stream = document.getElementById('ar-msgs');
-  const row = document.createElement('div');
-  row.className = 'ar-bubble-row';
-  row.innerHTML = `<div class="ar-avt">🍓</div><div class="ar-bubble">${text}</div>`;
-  stream.appendChild(row);
-  requestAnimationFrame(() => requestAnimationFrame(() => row.classList.add('in')));
-  /* Keep only 2 rows visible — fade and remove the oldest */
-  const all = stream.querySelectorAll('.ar-bubble-row');
-  if (all.length > 2) {
-    const old = all[0];
-    old.style.transition = 'opacity 0.4s';
-    old.style.opacity = '0';
-    setTimeout(() => old.remove(), 420);
+
+  /* Show typing indicator */
+  const typingRow = document.createElement('div');
+  typingRow.className = 'ar-bubble-row';
+  typingRow.innerHTML = `<div class="ar-avt">🍓</div>
+    <div class="ar-bubble" style="padding:10px 16px">
+      <span class="ar-typing-dot"></span>
+      <span class="ar-typing-dot"></span>
+      <span class="ar-typing-dot"></span>
+    </div>`;
+  stream.appendChild(typingRow);
+  requestAnimationFrame(() => requestAnimationFrame(() => typingRow.classList.add('in')));
+
+  /* Enforce max 2 rows — fade oldest immediately */
+  pruneARRows(stream, 2);
+
+  /* Wait proportional to text length */
+  const delay = 600 + text.length * 28 + Math.random() * 200;
+  await new Promise(r => setTimeout(r, delay));
+
+  /* Replace typing indicator with real message */
+  typingRow.querySelector('.ar-bubble').innerHTML = text;
+
+  /* Ensure still max 2 after adding */
+  pruneARRows(stream, 2);
+}
+
+function pruneARRows(stream, max) {
+  const rows = stream.querySelectorAll('.ar-bubble-row');
+  if (rows.length > max) {
+    for (let i = 0; i < rows.length - max; i++) {
+      const old = rows[i];
+      old.style.transition = 'opacity 0.35s';
+      old.style.opacity = '0';
+      setTimeout(() => old.remove(), 380);
+    }
   }
 }
 
@@ -823,41 +883,44 @@ function updateDistUI(dist) {
 }
 
 /* ─── FRUIT DECAY ────────────────────── */
-/* Track which buttons have already been removed */
-const goneButtons = new Set();
-
+/*
+  Each button has a personal "disappear threshold" evenly spaced from
+  0 (first) to (N-2)/N (second-to-last).  The last button never disappears.
+  decay=0 → all visible.  decay=1 → all but last gone.
+  Fully reversible: as dist increases decay decreases and buttons come back.
+*/
 function updateFruitDecay(dist) {
-  /* decay: 0 at DIST_MID, 1 at DIST_REVEAL */
   const decay = Math.max(0, Math.min(1,
     (CONFIG.DIST_MID - dist) / (CONFIG.DIST_MID - CONFIG.DIST_REVEAL)
   ));
 
   const btns = Array.from(document.querySelectorAll('.f-btn'));
-  const total = btns.length;
-  /* Always keep at least 1 button visible */
-  const maxGone = total - 1;
-  /* How many should be gone at this decay level */
-  const targetGone = Math.min(maxGone, Math.floor(decay * total));
+  const total = btns.length;          /* 6 */
+  const canDisappear = total - 1;     /* 5 — last always stays */
 
   btns.forEach((btn, i) => {
-    if (goneButtons.has(i)) return; /* already removed */
-
-    /* Each button starts decaying offset by its position */
-    const btnStart = i / total * 0.6; /* stagger start */
-    const btnDecay = Math.max(0, (decay - btnStart) / (1 - btnStart));
-
-    /* Remove class flickering by only adding, never removing decay classes */
-    btn.classList.remove('decay-1','decay-2','decay-3');
-    if (btnDecay <= 0)        { /* visible, no class */ }
-    else if (btnDecay < 0.35) btn.classList.add('decay-1');
-    else if (btnDecay < 0.65) btn.classList.add('decay-2');
-    else if (btnDecay < 0.85) btn.classList.add('decay-3');
-    else if (i < targetGone && !goneButtons.has(i)) {
-      /* Mark as gone — permanent */
-      goneButtons.add(i);
-      btn.classList.remove('decay-1','decay-2','decay-3');
-      btn.classList.add('decay-gone');
+    /* The last button never gets any decay class */
+    if (i === total - 1) {
+      btn.classList.remove('decay-1','decay-2','decay-3','decay-gone');
+      btn.style.pointerEvents = '';
+      return;
     }
+
+    /* normalised position 0..1 within the disappearable set */
+    const pos = i / canDisappear;      /* 0, 0.2, 0.4, 0.6, 0.8 */
+
+    /* Each button has a window: starts fading at pos*0.7, gone at pos*0.7+0.25 */
+    const fadeStart = pos * 0.7;
+    const fadeEnd   = fadeStart + 0.25;
+    /* progress within this button's own fade window */
+    const p = Math.max(0, Math.min(1, (decay - fadeStart) / (fadeEnd - fadeStart)));
+
+    btn.classList.remove('decay-1','decay-2','decay-3','decay-gone');
+    if      (p === 0)    { btn.style.pointerEvents = ''; }
+    else if (p < 0.33)   { btn.classList.add('decay-1'); btn.style.pointerEvents = ''; }
+    else if (p < 0.66)   { btn.classList.add('decay-2'); btn.style.pointerEvents = ''; }
+    else if (p < 1)      { btn.classList.add('decay-3'); btn.style.pointerEvents = 'none'; }
+    else                 { btn.classList.add('decay-gone'); btn.style.pointerEvents = 'none'; }
   });
 }
 
@@ -922,9 +985,15 @@ function showRevealPhoto() {
     const img = document.createElement('img');
     img.alt = '箱內視角';
     img.style.cssText = 'width:100%;display:block;height:auto;filter:saturate(0.4) brightness(0.65) blur(1px);';
-    /* Build absolute URL relative to current page to avoid path issues */
-    const base = window.location.href.replace(/\/[^/]*$/, '/');
-    img.src = base + CONFIG.REVEAL_PHOTO;
+    img.src = CONFIG.REVEAL_PHOTO;   /* same directory as HTML, simple relative path */
+    img.onerror = () => {
+      /* If load fails, replace with emoji fallback */
+      img.style.display = 'none';
+      const fb = document.createElement('div');
+      fb.style.cssText = 'width:100%;aspect-ratio:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;filter:blur(2px) brightness(0.5)';
+      fb.textContent = '🍓';
+      img.parentNode?.insertBefore(fb, img);
+    };
     photo.appendChild(img);
     const cap = document.createElement('div');
     cap.className = 'photo-cap';
