@@ -706,9 +706,7 @@ async function pickPreFruit(el) {
   await wait(1000);
   addPreMsg('能幫我開鏡頭對準那個箱子嗎？選標籤告訴我它現在的狀態。');
   await wait(900);
-  /* Show camera button */
   document.getElementById('pre-cam-btn').style.display = 'flex';
-  const feed = document.getElementById('pre-feed');
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
 }
 
