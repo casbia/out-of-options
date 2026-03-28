@@ -124,7 +124,7 @@ html, body {
   cursor:pointer; transition:transform 0.15s;
 }
 .msg-card:active { transform:scale(0.97); }
-.mc-avt { width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FF5C5C);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative; }
+.mc-avt { width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative; }
 .mc-badge { position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700; }
 .mc-body { flex:1; min-width:0; }
 .mc-name { font-size:15px; font-weight:600; margin-bottom:3px; }
@@ -219,7 +219,7 @@ html, body {
 .ar-bubble-row.in { opacity:1; transform:none; }
 .ar-avt {
   width:28px; height:28px; border-radius:50%;
-  background:linear-gradient(135deg,#FFB347,#FF5C5C);
+  background:linear-gradient(135deg,#2d6a6a,#1a4a5a);
   display:flex; align-items:center; justify-content:center;
   font-size:14px; flex-shrink:0;
 }
@@ -327,7 +327,7 @@ html, body {
   box-shadow:var(--sh-sm);
 }
 .ch-back { font-size:22px; color:var(--blue); cursor:pointer; padding:4px; line-height:1; }
-.ch-avt { width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FF5C5C);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative; }
+.ch-avt { width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative; }
 .ch-online { position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid var(--surface); }
 .ch-name   { font-size:16px; font-weight:600; }
 .ch-status { font-size:12px; color:var(--green); }
@@ -345,7 +345,7 @@ html, body {
 .msg.in { opacity:1; transform:none; }
 .msg-sys { align-self:flex-start; align-items:flex-end; margin-bottom:4px; }
 .msg-usr { align-self:flex-end; flex-direction:row-reverse; margin-bottom:4px; }
-.m-avt { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FF5C5C);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
+.m-avt { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
 .bubble { padding:10px 14px;font-size:15px;line-height:1.5;max-width:76%;word-break:break-word; }
 .msg-sys .bubble { background:var(--surface);color:var(--text-pri);border-radius:18px 18px 18px 4px;box-shadow:var(--sh-sm); }
 .msg-usr .bubble { background:var(--blue);color:#fff;border-radius:18px 18px 4px 18px; }
@@ -435,7 +435,7 @@ const CONFIG = {
     </div>
     <div class="delivery-card">
       <div class="dc-top">
-        <div class="dc-icon">🍊</div>
+        <div class="dc-icon">📦</div>
         <div>
           <div class="dc-title">快遞包裹抵達</div>
           <div class="dc-sub">您的包裹已送達指定地點<br>請盡快取件確認</div>
@@ -455,7 +455,9 @@ const CONFIG = {
       </div>
       <div class="mc-time">剛剛</div>
     </div>
-    <button class="open-btn" onclick="startAR()">開啟鏡頭確認包裹</button>
+    <button class="open-btn" onclick="startAR()">
+      <span style="font-size:18px;line-height:1;">💬</span> 開啟訊息
+    </button>
     <div class="entry-hint">需要相機權限 · 請使用 HTTPS 環境<br>建議 iPhone Safari / Android Chrome</div>
   </div>
 </div>
@@ -484,7 +486,7 @@ const CONFIG = {
   </div>
   <!-- Pre-chat fruit options (shown after story) -->
   <div class="options-dock" id="pre-options-dock" style="display:none">
-    <div class="od-label">你覺得裡面是什麼？</div>
+    <div class="od-label">你覺得是哪一種？</div>
     <div class="fruit-grid">
       <div class="f-btn" data-label="喜悅草莓" onclick="pickPreFruit(this)"><div class="f-emoji">🍓</div></div>
       <div class="f-btn" data-label="悲傷檸檬" onclick="pickPreFruit(this)"><div class="f-emoji">🍋</div></div>
@@ -518,7 +520,7 @@ const CONFIG = {
 
   <!-- bottom dock: fruit options -->
   <div class="ar-bottom" id="ar-bottom">
-    <div class="dock-label">選一個最接近的標籤</div>
+    <div class="dock-label">選一個水果</div>
     <div class="fruit-grid" id="fruit-grid">
       <div class="f-btn" data-label="喜悅草莓" onclick="pickFruit(this)"><div class="f-emoji">🍓</div></div>
       <div class="f-btn" data-label="悲傷檸檬" onclick="pickFruit(this)"><div class="f-emoji">🍋</div></div>
@@ -792,6 +794,9 @@ async function startAR() {
       S.markerVisible = true;
       activeAnchor = a;
       CONFIG.MARKER_WIDTH_M = a._markerWidth;
+      /* Clear buffer so stale readings from previous face don't pollute */
+      distBuffer.length = 0;
+      S.estimatedDist = 999;
       if (S.phase === 'ar') onTargetFound();
     };
     a.onTargetLost = () => {
@@ -959,11 +964,25 @@ function pickFruit(el) {
   el.classList.add('selected');
   setTimeout(() => el.classList.remove('selected'), 1800);
 
-  /* Cycle through replies in order so repeated picks get escalating responses */
+  /* Cycle through replies in order; after exhausting all, use sceptical loop */
   const rs = REPLIES[label] || ['⋯⋯'];
-  const idx = (replyCounters[label] || 0) % rs.length;
-  replyCounters[label] = idx + 1;
-  const reply = rs[idx];
+  const pickCount = replyCounters[label] || 0;
+  replyCounters[label] = pickCount + 1;
+
+  let reply;
+  if (pickCount < rs.length) {
+    reply = rs[pickCount];
+  } else {
+    /* Sceptical loop for repeated picks */
+    const sceptical = [
+      '你已經選過這個了。',
+      '你是認真的嗎？',
+      '還是說，你只是在測試我？',
+      '⋯⋯',
+      '沒有其他的了嗎？',
+    ];
+    reply = sceptical[(pickCount - rs.length) % sceptical.length];
+  }
 
   setTimeout(() => {
     addARMsg(reply);
@@ -985,6 +1004,11 @@ async function rearCam() {
   } catch { return undefined; }
 }
 
+/* ─── DISTANCE ESTIMATION ────────────────────────── */
+/* Rolling buffer for spike rejection */
+const distBuffer = [];
+const DIST_BUF_SIZE = 8;
+
 function estimateDist(anchor) {
   if (!anchor.group || !window.THREE) return;
   const cam = S.mindar.camera;
@@ -998,8 +1022,23 @@ function estimateDist(anchor) {
   if (px < 5) return;
   const fov = (cam.fov * Math.PI) / 180;
   const fc = (cW / 2) / Math.tan(fov / 2);
-  const dist = (CONFIG.MARKER_WIDTH_M * fc) / px;
-  processDist(S.estimatedDist * 0.75 + dist * 0.25);
+  const rawDist = (CONFIG.MARKER_WIDTH_M * fc) / px;
+
+  /* Clamp to physical plausible range */
+  if (rawDist < 0.05 || rawDist > 8) return;
+
+  /* Spike rejection: ignore if >2.5× the current smoothed estimate */
+  if (S.estimatedDist < 5 && rawDist > S.estimatedDist * 2.5) return;
+
+  /* Rolling buffer median for extra stability */
+  distBuffer.push(rawDist);
+  if (distBuffer.length > DIST_BUF_SIZE) distBuffer.shift();
+  const sorted = [...distBuffer].sort((a,b) => a-b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+
+  /* Heavy smoothing: 85% old, 15% new */
+  const smooth = S.estimatedDist * 0.85 + median * 0.15;
+  processDist(smooth);
 }
 
 function processDist(dist) {
