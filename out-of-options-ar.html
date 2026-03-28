@@ -538,6 +538,9 @@ const CONFIG = {
       <div class="f-btn" data-label="橘子" onclick="pickFruit(this)"><div class="f-emoji">🍊</div></div>
       <div class="f-btn" data-label="藍莓" onclick="pickFruit(this)"><div class="f-emoji">🫐</div></div>
       <div class="f-btn" data-label="蜜瓜" onclick="pickFruit(this)"><div class="f-emoji">🍈</div></div>
+      <div class="f-btn f-btn-silence" data-label="⋯⋯" onclick="pickFruit(this)" style="grid-column:1/-1;background:rgba(0,0,0,0.04);">
+        <div class="f-emoji" style="font-size:16px;letter-spacing:3px;color:var(--text-ter);">⋯⋯</div>
+      </div>
     </div>
   </div>
 </div>
@@ -638,6 +641,11 @@ const REPLIES = {
     '沒有其他的嗎？',
     '你覺得不是水果也可以說。',
   ],
+  '⋯⋯': [
+    '這樣我並不明白你的意思。',
+    '你不知道⋯⋯\n還是說你覺得不在這裡面？',
+    '這裡只有這些選項。\n我知道不夠用。',
+  ],
 };
 
 /* Proximity messages (float over AR, triggered by distance) */
@@ -648,28 +656,36 @@ const PROX_MSG = [
   { dist: 0.3, text: '⋯⋯' },
 ];
 
-/* Reveal chat (after crossing 10cm) */
+/* Reveal chat — voice of someone trapped inside, looking out through a crack */
 const REVEAL_CHAT_FAST = [
-  { text: '⋯⋯' },
-  { text: '你靠得很快。', delay: 1200 },
-  { text: '你急著想看到答案？', delay: 1000 },
-  { photo: true, delay: 1800 },
-  { text: '這是從裡面拍的。', delay: 600 },
-  { text: '我一直都在這裡。\n只是不在你的選項裡。', delay: 1400 },
+  { text: '你花了多久才靠過來？' },
+  { text: '感覺很久了。', delay: 1400 },
+  { text: '我在這裡等很久了。', delay: 1200 },
+  { photo: true, delay: 2200 },
+  { text: '這是我能看到的樣子。', delay: 800 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '我知道它只有六個選項。\n我一直都知道。', delay: 1400 },
+  { text: '但我不在那六個裡面。', delay: 1200 },
 ];
 const REVEAL_CHAT_HES = [
-  { text: '⋯⋯你來了又退。' },
-  { text: '我知道。\n要靠近一個不知道是什麼的東西，很難。', delay: 1400 },
-  { photo: true, delay: 2000 },
-  { text: '這是從裡面拍的。', delay: 600 },
-  { text: '我不是那些標籤裡的任何一個。\n但我一直在這裡。', delay: 1600 },
+  { text: '你來了又走。' },
+  { text: '我以為你不來了。', delay: 1600 },
+  { text: '⋯⋯但你還是來了。', delay: 1200 },
+  { photo: true, delay: 2200 },
+  { text: '這是我能看到的樣子。', delay: 800 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '六個選項。\n我數過很多次了。', delay: 1400 },
+  { text: '沒有一個是我。', delay: 1000 },
 ];
 const REVEAL_CHAT_SLOW = [
   { text: '你很慢。' },
-  { text: '但你還是來了。', delay: 1000 },
-  { photo: true, delay: 2000 },
-  { text: '這是從裡面拍的。', delay: 600 },
-  { text: '當你的選項全部消失的時候，\n才剩下真實的我。', delay: 1600 },
+  { text: '我在這裡的時候沒有時間感。', delay: 1800 },
+  { text: '但我感覺得到有人靠近。', delay: 1400 },
+  { photo: true, delay: 2200 },
+  { text: '這是我能看到的樣子。', delay: 800 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '我設計它的時候就知道\n它裝不下真實的東西。', delay: 1600 },
+  { text: '但我還是設計了它。', delay: 1000 },
 ];
 
 /* ─── HELPERS ────────────────────────── */
@@ -708,17 +724,19 @@ function hidePreTyping()  { document.getElementById('pre-typing').classList.remo
 async function runPreChat() {
   for (const step of PRE_CHAT) {
     showPreTyping();
-    await wait(900 + step.text.replace(/\n/g,'').length * 28 + Math.random()*300);
+    /* Typing duration: realistic per character */
+    await wait(1000 + step.text.replace(/\n/g,'').length * 32 + Math.random()*400);
     hidePreTyping();
     addPreMsg(step.text);
     if (step.action === 'show-pre-options') {
-      await wait(600);
+      await wait(900);
       document.getElementById('pre-options-dock').style.display = 'block';
       const feed = document.getElementById('pre-feed');
       setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
-      return; /* wait for user to pick — pickPreFruit continues the flow */
+      return;
     }
-    await wait(800 + Math.random()*400);
+    /* Longer reading pause between messages */
+    await wait(1400 + Math.random()*600);
   }
 }
 
@@ -752,10 +770,10 @@ async function pickPreFruit(el) {
   hidePreTyping();
   addPreMsg(reply);
 
-  /* Transition — show camera button instead of auto-jumping */
-  await wait(1000);
+  /* Transition — show camera button after enough reading time */
+  await wait(1600);
   addPreMsg('能幫我開鏡頭對準那個箱子嗎？選標籤告訴我它現在的狀態。');
-  await wait(900);
+  await wait(1800);
   document.getElementById('pre-cam-btn').style.display = 'flex';
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
 }
@@ -768,9 +786,13 @@ async function startAR() {
   try {
     await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
   } catch {
-    /* Show the HTTPS/permission hint only now that it's relevant */
     const hint = document.getElementById('entry-hint');
-    if (hint) { hint.style.visibility = 'visible'; hint.style.color = 'var(--accent)'; }
+    if (hint && hint.style.visibility === 'visible') {
+      /* Already shown hint — second failure: show alert */
+      alert('無法取得相機權限。\n請確認：\n① 使用 HTTPS 網址\n② iPhone 請用 Safari\n③ Android 請用 Chrome\n④ 瀏覽器設定中允許此網站使用相機');
+    } else {
+      if (hint) { hint.style.visibility = 'visible'; hint.style.color = 'var(--accent)'; }
+    }
     showScreen('screen-entry'); return;
   }
 
@@ -785,6 +807,11 @@ async function startAR() {
     maxTrack: 1,
     uiLoading: 'no', uiScanning: 'no', uiError: 'no',
     cameraDeviceId: await rearCam(),
+    /* Increase tracking sensitivity for close-range and side-face detection */
+    filterMinCF:  0.001,   /* lower = tracks longer at close range / steep angle */
+    filterBeta:   1000,    /* higher = faster response to movement */
+    missTolerance: 5,      /* frames before declaring target lost (default 5) */
+    warmupTolerance: 3,    /* frames before declaring target found (lower = faster) */
   });
 
   const { renderer, scene, camera } = S.mindar;
@@ -881,9 +908,19 @@ let targetFoundOnce = false;
 function onTargetFound() {
   if (targetFoundOnce) return;
   targetFoundOnce = true;
-  /* Prompt to pick a label now that box is visible */
-  addARMsg('選一個標籤告訴我——你覺得裡面是什麼水果？');
-  initDecayOrder();   /* randomise decay order now */
+  initDecayOrder();
+  /* Show message, then wait for it to finish displaying before entering chat */
+  addARMsg('找到了⋯⋯就是這個箱子。\n選一個水果告訴我，你覺得裡面是什麼？');
+}
+
+/* enterChat is now called only after AR message is fully shown */
+async function waitThenEnterChat() {
+  /* Wait until message queue empty + small extra pause so user can read */
+  while (arMsgBusy || arMsgQueue.length > 0) {
+    await new Promise(r => setTimeout(r, 200));
+  }
+  await new Promise(r => setTimeout(r, 2000));  /* 2s reading buffer */
+  if (S.phase === 'ar') enterChat();
 }
 
 /* ─── AR MESSAGES (float over camera, max 2 shown) ── */
@@ -988,12 +1025,15 @@ function pickFruit(el) {
   if (pickCount < rs.length) {
     reply = rs[pickCount];
   } else {
-    /* Sceptical loop for repeated picks */
+    /* Sceptical / system-awareness loop for repeated picks */
     const sceptical = [
       '你已經選過這個了。',
+      '這裡只有六個選項。',
       '你是認真的嗎？',
+      '我知道選項不夠用。',
       '還是說，你只是在測試我？',
       '⋯⋯',
+      '你用的那個介面，是我設計的。',
       '沒有其他的了嗎？',
     ];
     reply = sceptical[(pickCount - rs.length) % sceptical.length];
