@@ -402,11 +402,22 @@ html, body {
 const CONFIG = {
   MIND_FILE:      'targets.mind',
   REVEAL_PHOTO:   'reveal.jpg',
-  MARKER_WIDTH_M: 0.12,
-  DIST_FAR:    1.8,
-  DIST_MID:    1.0,
-  DIST_CLOSE:  0.5,
-  DIST_REVEAL: 0.20,   /* 20 cm */
+
+  /*
+    箱子尺寸說明：
+    - 頂面/正面 marker：0.45 × 0.3 m，取寬邊 0.45
+    - 側面 marker：0.3 × 0.3 m
+    多面追蹤時程式會自動切換 activeMarkerWidth。
+    預設用頂/正面寬邊。
+  */
+  MARKER_WIDTH_LARGE: 0.45,   /* 頂面/正面 */
+  MARKER_WIDTH_SMALL: 0.30,   /* 側面 */
+  MARKER_WIDTH_M: 0.45,       /* 目前使用的寬（會由 activeAnchor 動態切換） */
+
+  DIST_FAR:    2.5,    /* 全部標籤可見的最遠距離 */
+  DIST_MID:    0.55,   /* 標籤開始消失（拉近到這裡才開始衰減） */
+  DIST_CLOSE:  0.35,
+  DIST_REVEAL: 0.20,   /* 20 cm 觸發揭曉 */
   DEV_MODE:    false,
 };
 </script>
@@ -424,7 +435,7 @@ const CONFIG = {
     </div>
     <div class="delivery-card">
       <div class="dc-top">
-        <div class="dc-icon">📦</div>
+        <div class="dc-icon">🍊</div>
         <div>
           <div class="dc-title">快遞包裹抵達</div>
           <div class="dc-sub">您的包裹已送達指定地點<br>請盡快取件確認</div>
@@ -434,10 +445,10 @@ const CONFIG = {
         <div class="dc-sdot"></div>
         <span>等待確認取件 · 需現場掃描</span>
       </div>
-      <div class="dc-addr">📍 &nbsp;包裹特徵：貼有草莓圖案</div>
+      <div class="dc-addr">📍 &nbsp;包裹特徵：貼有橘子圖案</div>
     </div>
     <div class="msg-card" onclick="startAR()">
-      <div class="mc-avt">🍓<div class="mc-badge">1</div></div>
+      <div class="mc-avt">🍊<div class="mc-badge">1</div></div>
       <div class="mc-body">
         <div class="mc-name">陌生來電 · 未知號碼</div>
         <div class="mc-prev">嘿，那個箱子⋯⋯能幫我看一下嗎？</div>
@@ -458,7 +469,7 @@ const CONFIG = {
 <!-- ══ PRE-SCAN CHAT (before AR) ══ -->
 <div id="chat-pre">
   <div class="chat-hdr">
-    <div class="ch-avt">🍓<div class="ch-online"></div></div>
+    <div class="ch-avt">🍊<div class="ch-online"></div></div>
     <div>
       <div class="ch-name">陌生來電</div>
       <div class="ch-status" id="pre-status">正在線上</div>
@@ -467,7 +478,7 @@ const CONFIG = {
   <div class="chat-feed" id="pre-feed">
     <div class="date-div"><span>今天</span></div>
     <div class="typing-row" id="pre-typing">
-      <div class="m-avt">🍓</div>
+      <div class="m-avt">🍊</div>
       <div class="typing-bub"><span></span><span></span><span></span></div>
     </div>
   </div>
@@ -522,7 +533,7 @@ const CONFIG = {
 <!-- ══ POST-AR REVEAL CHAT ══ -->
 <div id="chat-reveal">
   <div class="chat-hdr">
-    <div class="ch-avt">🍓<div class="ch-online"></div></div>
+    <div class="ch-avt">🍊<div class="ch-online"></div></div>
     <div>
       <div class="ch-name">陌生來電</div>
       <div class="ch-status" id="reveal-status">正在線上</div>
@@ -531,7 +542,7 @@ const CONFIG = {
   <div class="chat-feed" id="reveal-feed">
     <div class="date-div"><span>今天</span></div>
     <div class="typing-row" id="reveal-typing">
-      <div class="m-avt">🍓</div>
+      <div class="m-avt">🍊</div>
       <div class="typing-bub"><span></span><span></span><span></span></div>
     </div>
   </div>
@@ -565,7 +576,7 @@ const S = {
 const PRE_CHAT = [
   { text: '嘿，不好意思，你是外送員嗎？' },
   { text: '我剛收到取件通知說包裹到了，但我現在被困在外面⋯⋯' },
-  { text: '那個箱子上貼了草莓的標籤，但說真的——\n我不確定裡面是不是真的草莓。' },
+  { text: '那個箱子上貼了橘子的標籤，但說真的——\n我不確定裡面是不是真的橘子。' },
   { text: '上次訂的東西，外面寫橘子，打開是檸檬。\n貼的標籤跟裡面的，不一定是同一種。' },
   { text: '你覺得這次裡面是什麼？', action: 'show-pre-options' },
 ];
@@ -580,14 +591,38 @@ const PRE_REPLIES = {
   '平靜蜜瓜': ['平靜的話倒是好事。', '⋯⋯希望如此。'],
 };
 
-/* Replies to fruit picks */
+/* Replies to fruit picks — echo the fruit back, gently destabilise the label */
 const REPLIES = {
-  '喜悅草莓': ['你真的覺得是這樣嗎？', '也許是喜悅。但我不確定那是全部。'],
-  '悲傷檸檬': ['嗯。你是這樣看的。', '有時候悲傷跟別的東西長得很像。'],
-  '憤怒葡萄': ['憤怒⋯⋯可能吧。', '或者是別的什麼，被誤認為憤怒。'],
-  '焦慮橘子': ['你感覺到焦慮了嗎？', '或許只是⋯⋯不確定。'],
-  '孤獨藍莓': ['孤獨。', '有時候孤獨跟存在感很近。'],
-  '平靜蜜瓜': ['平靜⋯⋯真的嗎？', '有些平靜是真的，有些只是沉默。'],
+  '喜悅草莓': [
+    '🍓⋯⋯喜悅。\n沒有其他的嗎？',
+    '你真的這樣覺得？\n還是只是⋯⋯🍓 感覺比較好選？',
+    '我曾用過你現在用的這個介面。\n選擇很少。',
+  ],
+  '悲傷檸檬': [
+    '🍋。\n你確定嗎？',
+    '悲傷⋯⋯還是說你覺得不是水果？',
+    '這個選項你選過了。\n還是說這次不一樣？',
+  ],
+  '憤怒葡萄': [
+    '🍇。\n你是猜的，還是你真的感覺到了？',
+    '憤怒。\n沒有其他的嗎？',
+    '你選的每個詞我都知道。\n但我不在這些詞裡面。',
+  ],
+  '焦慮橘子': [
+    '🍊。\n有意思——\n這個箱子外面就是橘子。',
+    '你覺得它焦慮⋯⋯\n還是你現在有點焦慮？',
+    '沒有其他的嗎？',
+  ],
+  '孤獨藍莓': [
+    '🫐。\n孤獨。\n你怎麼知道的？',
+    '也許吧。\n但選項不夠用。',
+    '我曾用過你現在用的這個介面。\n它沒辦法裝下我全部。',
+  ],
+  '平靜蜜瓜': [
+    '🍈。\n真的嗎？\n還是說平靜比較容易選？',
+    '沒有其他的嗎？',
+    '你覺得不是水果也可以說。',
+  ],
 };
 
 /* Proximity messages (float over AR, triggered by distance) */
@@ -645,7 +680,7 @@ function addPreMsg(text) {
   const tdots = document.getElementById('pre-typing');
   const div = document.createElement('div');
   div.className = 'msg msg-sys';
-  div.innerHTML = `<div class="m-avt">🍓</div>
+  div.innerHTML = `<div class="m-avt">🍊</div>
     <div><div class="bubble">${text.replace(/\n/g,'<br>')}</div>
     <div class="b-meta">${ts()}</div></div>`;
   feed.insertBefore(div, tdots);
@@ -736,18 +771,37 @@ async function startAR() {
   });
 
   const { renderer, scene, camera } = S.mindar;
-  /* outputColorSpace set here for correctness; outputEncoding warning
-     suppressed via prototype patch in the module script above. */
   renderer.outputColorSpace = 'srgb';
 
-  const anchor = S.mindar.addAnchor(0);
-  anchor.onTargetFound = () => {
-    S.markerVisible = true;
-    if (S.phase === 'ar') onTargetFound();
-  };
-  anchor.onTargetLost = () => {
-    S.markerVisible = false;
-  };
+  /* ── Multi-face anchors ──────────────────────────────────────────
+     targets.mind can contain up to 6 image targets (one per box face).
+     We register an anchor for each available target index (0–5).
+     The one currently visible drives distance estimation.
+     Compile all face images together at:
+     https://hiukim.github.io/mind-ar-js-doc/tools/compile
+  ──────────────────────────────────────────────────────────────── */
+  const NUM_FACES = 3;   /* ← change to however many images you compiled */
+  const anchors = [];
+  let activeAnchor = null;
+
+  for (let i = 0; i < NUM_FACES; i++) {
+    const a = S.mindar.addAnchor(i);
+    /* Large face (index 0) = top/front, rest = sides */
+    a._markerWidth = (i === 0) ? CONFIG.MARKER_WIDTH_LARGE : CONFIG.MARKER_WIDTH_SMALL;
+    a.onTargetFound = () => {
+      S.markerVisible = true;
+      activeAnchor = a;
+      CONFIG.MARKER_WIDTH_M = a._markerWidth;
+      if (S.phase === 'ar') onTargetFound();
+    };
+    a.onTargetLost = () => {
+      if (activeAnchor === a) {
+        S.markerVisible = false;
+        activeAnchor = null;
+      }
+    };
+    anchors.push(a);
+  }
 
   document.getElementById('ar-container').classList.add('active');
   try { await S.mindar.start(); } catch(e) { console.warn(e); }
@@ -756,7 +810,7 @@ async function startAR() {
 
   renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
-    if (S.markerVisible && S.phase === 'ar') estimateDist(anchor);
+    if (S.markerVisible && activeAnchor && S.phase === 'ar') estimateDist(activeAnchor);
   });
 
   /* Show pre-chat first */
@@ -848,7 +902,7 @@ async function showARMsgWithTyping(text) {
   /* Show typing indicator */
   const typingRow = document.createElement('div');
   typingRow.className = 'ar-bubble-row';
-  typingRow.innerHTML = `<div class="ar-avt">🍓</div>
+  typingRow.innerHTML = `<div class="ar-avt">🍊</div>
     <div class="ar-bubble" style="padding:10px 16px">
       <span class="ar-typing-dot"></span>
       <span class="ar-typing-dot"></span>
@@ -884,7 +938,8 @@ function pruneARRows(stream, max) {
 }
 
 /* ─── FRUIT PICK ─────────────────────── */
-let fruitCooldown = false;   /* brief cooldown to prevent double-tap spam */
+let fruitCooldown = false;
+const replyCounters = {};   /* track how many times each label has been picked */
 
 function pickFruit(el) {
   if (!el) return;
@@ -900,19 +955,21 @@ function pickFruit(el) {
   S.selectedLabels.push(label);
   S.fruitsChosen++;
 
-  /* Flash selected state, then reset after reply */
+  /* Flash selected state */
   el.classList.add('selected');
   setTimeout(() => el.classList.remove('selected'), 1800);
 
-  /* Show reply as AR bubble */
+  /* Cycle through replies in order so repeated picks get escalating responses */
   const rs = REPLIES[label] || ['⋯⋯'];
-  const reply = rs[Math.floor(Math.random() * rs.length)];
+  const idx = (replyCounters[label] || 0) % rs.length;
+  replyCounters[label] = idx + 1;
+  const reply = rs[idx];
+
   setTimeout(() => {
     addARMsg(reply);
     if (S.fruitsChosen === 3) {
       setTimeout(() => addARMsg('好了⋯⋯靠近一點，再靠近一點。'), 1400);
     }
-    /* Release cooldown after reply queued */
     setTimeout(() => { fruitCooldown = false; }, 1200);
   }, 400);
 }
@@ -1089,7 +1146,7 @@ function addRevealMsg(text) {
   const tdots = document.getElementById('reveal-typing');
   const div = document.createElement('div');
   div.className = 'msg msg-sys';
-  div.innerHTML = `<div class="m-avt">🍓</div>
+  div.innerHTML = `<div class="m-avt">🍊</div>
     <div><div class="bubble">${text.replace(/\n/g,'<br>')}</div>
     <div class="b-meta">${ts()}</div></div>`;
   feed.insertBefore(div, tdots);
@@ -1107,7 +1164,7 @@ function showRevealPhoto() {
 
   const avt = document.createElement('div');
   avt.className = 'm-avt';
-  avt.textContent = '🍓';
+  avt.textContent = '🍊';
 
   const photo = document.createElement('div');
   photo.className = 'photo-bubble';
@@ -1120,7 +1177,7 @@ function showRevealPhoto() {
       img.style.display = 'none';
       const fb = document.createElement('div');
       fb.style.cssText = 'width:100%;aspect-ratio:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;filter:blur(2px) brightness(0.5)';
-      fb.textContent = '🍓';
+      fb.textContent = '🍊';
       photo.insertBefore(fb, null);
     };
     photo.appendChild(img);
@@ -1128,7 +1185,7 @@ function showRevealPhoto() {
   } else {
     const gen = document.createElement('div');
     gen.style.cssText = 'width:100%;aspect-ratio:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;filter:blur(2px) brightness(0.5)';
-    gen.textContent = '🍓';
+    gen.textContent = '🍊';
     photo.appendChild(gen);
   }
 
