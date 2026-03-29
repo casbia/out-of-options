@@ -648,12 +648,12 @@ const REPLIES = {
   ],
 };
 
-/* Proximity messages (float over AR, triggered by distance) */
+/* Proximity messages (float over AR, triggered by distance thresholds) */
 const PROX_MSG = [
-  { dist: 1.4, text: '能看到箱子嗎？告訴我它現在的狀態。' },
-  { dist: 0.9, text: '再靠近一點⋯⋯' },
-  { dist: 0.55, text: '就快了。繼續靠近。' },
-  { dist: 0.3, text: '⋯⋯' },
+  { dist: 1.8, text: '你看到那個箱子了嗎？\n把鏡頭對準它。' },
+  { dist: 1.2, text: '選幾個水果告訴我。' },
+  { dist: 0.7, text: '繼續靠近箱子⋯⋯\n用走的，不是用鏡頭拉近。' },
+  { dist: 0.4, text: '再近一點。' },
 ];
 
 /* Reveal chat — voice of someone trapped inside, looking out through a crack */
@@ -807,16 +807,20 @@ async function startAR() {
     maxTrack: 1,
     uiLoading: 'no', uiScanning: 'no', uiError: 'no',
     cameraDeviceId: await rearCam(),
-    /* Higher resolution for better detection quality */
     videoConstraint: {
       facingMode: 'environment',
       width:  { ideal: 1280 },
       height: { ideal: 720 },
     },
-    filterMinCF:     0.0001, /* very low = tracks at steep angles / close range */
-    filterBeta:      10000,  /* high = fast response to movement */
-    missTolerance:   8,      /* more forgiving before declaring lost */
-    warmupTolerance: 2,      /* faster to confirm found */
+    /* Close-range tracking optimisation:
+       filterMinCF very low = tracks at steep angles and close distances
+       filterBeta high = fast response, less lag when moving
+       missTolerance high = doesn't give up quickly when briefly occluded
+       warmupTolerance low = fast target acquisition */
+    filterMinCF:     0.00001,
+    filterBeta:      10000,
+    missTolerance:   15,
+    warmupTolerance: 2,
   });
 
   const { renderer, scene, camera } = S.mindar;
@@ -925,18 +929,10 @@ function onTargetFound() {
   if (targetFoundOnce) return;
   targetFoundOnce = true;
   initDecayOrder();
-  /* Show message, then wait for it to finish displaying before entering chat */
-  addARMsg('找到了⋯⋯就是這個箱子。\n選一個水果告訴我，你覺得裡面是什麼？');
-}
-
-/* enterChat is now called only after AR message is fully shown */
-async function waitThenEnterChat() {
-  /* Wait until message queue empty + small extra pause so user can read */
-  while (arMsgBusy || arMsgQueue.length > 0) {
-    await new Promise(r => setTimeout(r, 200));
-  }
-  await new Promise(r => setTimeout(r, 2000));  /* 2s reading buffer */
-  if (S.phase === 'ar') enterChat();
+  /* Small delay before first message so user can see the camera view first */
+  setTimeout(() => {
+    addARMsg('找到了。\n選一個水果告訴我⋯⋯你覺得裡面是什麼？');
+  }, 1200);
 }
 
 /* ─── AR MESSAGES (float over camera, max 2 shown) ── */
@@ -1016,7 +1012,7 @@ const replyCounters = {};   /* track how many times each label has been picked *
 
 function pickFruit(el) {
   if (!el) return;
-  if (el.classList.contains('decay-gone') || el.style.pointerEvents === 'none') return;
+  if (el.style.pointerEvents === 'none') return;
   if (fruitCooldown) return;
 
   const label = el.dataset.label;
@@ -1057,8 +1053,13 @@ function pickFruit(el) {
 
   setTimeout(() => {
     addARMsg(reply);
+    /* After 3 picks: prompt to approach physically */
     if (S.fruitsChosen === 3) {
-      setTimeout(() => addARMsg('好了⋯⋯靠近一點，再靠近一點。'), 1400);
+      setTimeout(() => addARMsg('好了⋯⋯現在靠近箱子。\n用走的，不是用鏡頭。'), 1600);
+    }
+    /* After 5 picks without approaching: system-awareness message */
+    if (S.fruitsChosen === 5) {
+      setTimeout(() => addARMsg('你一直在選⋯⋯\n但你沒有靠近。\n你用的那個介面，是我設計的。'), 1200);
     }
     setTimeout(() => { fruitCooldown = false; }, 1200);
   }, 400);
@@ -1141,16 +1142,16 @@ function processDist(dist) {
 
   updateDistUI(dist);
   maybeShowProxMsg(dist);
-  updateFruitDecay(dist);
+  /* Fruit decay removed — buttons always stay visible */
 
-  /* Only trigger reveal after at least 3 fruit picks */
-  if (dist <= CONFIG.DIST_REVEAL && S.phase === 'ar') {
+  /* Reveal: requires BOTH sufficient picks AND close enough distance */
+  if (dist <= CONFIG.DIST_REVEAL && S.phase === 'ar' && !revealDone) {
     if (S.fruitsChosen >= 3) {
       triggerReveal();
     } else {
       if (!window._nudgeSent) {
         window._nudgeSent = true;
-        addARMsg('站遠一點讓我看箱子全貌⋯⋯');
+        addARMsg('先多選幾個水果⋯⋯再靠近。');
         setTimeout(() => { window._nudgeSent = false; }, 4000);
       }
     }
