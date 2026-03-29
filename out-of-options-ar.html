@@ -538,8 +538,8 @@ const CONFIG = {
       <div class="f-btn" data-label="橘子" onclick="pickFruit(this)"><div class="f-emoji">🍊</div></div>
       <div class="f-btn" data-label="藍莓" onclick="pickFruit(this)"><div class="f-emoji">🫐</div></div>
       <div class="f-btn" data-label="蜜瓜" onclick="pickFruit(this)"><div class="f-emoji">🍈</div></div>
-      <div class="f-btn f-btn-silence" data-label="⋯⋯" onclick="pickFruit(this)" style="grid-column:1/-1;background:rgba(0,0,0,0.04);">
-        <div class="f-emoji" style="font-size:16px;letter-spacing:3px;color:var(--text-ter);">⋯⋯</div>
+      <div class="f-btn f-btn-silence" data-label="⋯⋯" onclick="pickFruit(this)" style="grid-column:1/-1;">
+        <div class="f-emoji" style="font-size:15px;letter-spacing:4px;color:var(--text-sec);">⋯⋯</div>
       </div>
     </div>
   </div>
@@ -807,11 +807,16 @@ async function startAR() {
     maxTrack: 1,
     uiLoading: 'no', uiScanning: 'no', uiError: 'no',
     cameraDeviceId: await rearCam(),
-    /* Increase tracking sensitivity for close-range and side-face detection */
-    filterMinCF:  0.001,   /* lower = tracks longer at close range / steep angle */
-    filterBeta:   1000,    /* higher = faster response to movement */
-    missTolerance: 5,      /* frames before declaring target lost (default 5) */
-    warmupTolerance: 3,    /* frames before declaring target found (lower = faster) */
+    /* Higher resolution for better detection quality */
+    videoConstraint: {
+      facingMode: 'environment',
+      width:  { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+    filterMinCF:     0.0001, /* very low = tracks at steep angles / close range */
+    filterBeta:      10000,  /* high = fast response to movement */
+    missTolerance:   8,      /* more forgiving before declaring lost */
+    warmupTolerance: 2,      /* faster to confirm found */
   });
 
   const { renderer, scene, camera } = S.mindar;
@@ -836,15 +841,26 @@ async function startAR() {
       S.markerVisible = true;
       activeAnchor = a;
       CONFIG.MARKER_WIDTH_M = a._markerWidth;
-      /* Clear buffer so stale readings from previous face don't pollute */
+      /* Full reset — force immediate jump to first real reading */
       distBuffer.length = 0;
-      S.estimatedDist = 999;   /* force cold-start jump on next reading */
+      S.estimatedDist = 999;
+      S.lastDist = 999;
+      /* Show dist pill, clear stale value */
+      document.getElementById('dp-val').textContent = '⋯⋯';
+      document.getElementById('dist-pill').classList.add('visible');
       if (S.phase === 'ar') onTargetFound();
     };
     a.onTargetLost = () => {
       if (activeAnchor === a) {
         S.markerVisible = false;
         activeAnchor = null;
+        /* Hide dist pill — don't show stale frozen value */
+        document.getElementById('dist-pill').classList.remove('visible');
+        document.getElementById('dp-val').textContent = '-- m';
+        /* Clear buffer so old values don't corrupt next sighting */
+        distBuffer.length = 0;
+        S.estimatedDist = 999;
+        S.lastDist = 999;
       }
     };
     anchors.push(a);
@@ -1084,13 +1100,12 @@ function estimateDist(anchor) {
   /* Hard clamp — physically impossible values discarded immediately */
   if (rawDist < 0.04 || rawDist > 5.0) return;
 
-  /* Adaptive spike rejection:
-     If buffer has readings, reject anything >1.8× the buffer median.
-     This kills the "suddenly 20 metres" spikes. */
+  /* Adaptive spike rejection — tighter multiplier when already close */
   if (distBuffer.length >= 3) {
     const sorted = [...distBuffer].sort((a,b) => a-b);
     const med = sorted[Math.floor(sorted.length / 2)];
-    if (rawDist > med * 1.8) return;   /* spike — discard */
+    const multiplier = med < 0.5 ? 1.4 : 1.8;
+    if (rawDist > med * multiplier) return;
   }
 
   distBuffer.push(rawDist);
@@ -1099,14 +1114,15 @@ function estimateDist(anchor) {
   const sorted = [...distBuffer].sort((a,b) => a-b);
   const median = sorted[Math.floor(sorted.length / 2)];
 
-  /* Asymmetric smoothing:
-     - Approaching (getting closer): respond quickly  → 60% new
-     - Receding  (getting farther):  respond slowly  → 10% new
-     This makes walking in feel responsive while preventing noise spikes upward.
-     Initial value: if buffer just filled, seed from median directly. */
   let smooth;
   if (S.estimatedDist > 4.5) {
-    smooth = median;  /* cold start — jump to real value immediately */
+    smooth = median;  /* cold start — jump immediately */
+  } else {
+    const approaching = median < S.estimatedDist;
+    /* Approaching: fast (0.75). Receding: very slow (0.08) to suppress noise spikes */
+    const alpha = approaching ? 0.75 : 0.08;
+    smooth = S.estimatedDist * (1 - alpha) + median * alpha;
+  }
   } else {
     const approaching = median < S.estimatedDist;
     const alpha = approaching ? 0.55 : 0.10;
@@ -1253,6 +1269,10 @@ async function triggerReveal() {
       addRevealMsg(step.text);
     }
   }
+
+  /* Auto-reset after 90s so next visitor starts fresh */
+  await wait(90000);
+  if (S.phase === 'reveal') location.reload();
 }
 
 function addRevealMsg(text) {
