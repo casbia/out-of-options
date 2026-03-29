@@ -1123,11 +1123,6 @@ function estimateDist(anchor) {
     const alpha = approaching ? 0.75 : 0.08;
     smooth = S.estimatedDist * (1 - alpha) + median * alpha;
   }
-  } else {
-    const approaching = median < S.estimatedDist;
-    const alpha = approaching ? 0.55 : 0.10;
-    smooth = S.estimatedDist * (1 - alpha) + median * alpha;
-  }
 
   processDist(smooth);
 }
