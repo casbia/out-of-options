@@ -414,10 +414,10 @@ const CONFIG = {
   MARKER_WIDTH_SMALL: 0.30,   /* 側面 */
   MARKER_WIDTH_M: 0.45,       /* 目前使用的寬（會由 activeAnchor 動態切換） */
 
-  DIST_FAR:    2.5,    /* 全部標籤可見的最遠距離 */
-  DIST_MID:    0.55,   /* 標籤開始消失（拉近到這裡才開始衰減） */
+  DIST_FAR:    2.5,
+  DIST_MID:    0.55,
   DIST_CLOSE:  0.35,
-  DIST_REVEAL: 0.20,   /* 20 cm 觸發揭曉 */
+  DIST_REVEAL: 0.45,   /* 45 cm — MindAR loses tracking closer than this */
   DEV_MODE:    false,
 };
 </script>
@@ -488,7 +488,7 @@ const CONFIG = {
     </div>
   </div>
   <div class="chat-feed" id="pre-feed">
-    <div class="date-div"><span>今天</span></div>
+    <div class="date-div"><span>陌生號碼已加入聊天</span></div>
     <div class="typing-row" id="pre-typing">
       <div class="m-avt"><svg width="16" height="16" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.8)"/><path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></div>
       <div class="typing-bub"><span></span><span></span><span></span></div>
@@ -558,7 +558,7 @@ const CONFIG = {
     </div>
   </div>
   <div class="chat-feed" id="reveal-feed">
-    <div class="date-div"><span>今天</span></div>
+    <div class="date-div"><span>陌生號碼已加入聊天</span></div>
     <div class="typing-row" id="reveal-typing">
       <div class="m-avt"><svg width="16" height="16" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.8)"/><path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></div>
       <div class="typing-bub"><span></span><span></span><span></span></div>
@@ -1057,9 +1057,12 @@ function pickFruit(el) {
     if (S.fruitsChosen === 3) {
       setTimeout(() => addARMsg('好了⋯⋯現在靠近箱子。\n用走的，不是用鏡頭。'), 1600);
     }
-    /* After 5 picks without approaching: system-awareness message */
-    if (S.fruitsChosen === 5) {
-      setTimeout(() => addARMsg('你一直在選⋯⋯\n但你沒有靠近。\n你用的那個介面，是我設計的。'), 1200);
+    /* After 5 picks without approaching: trigger reveal directly */
+    if (S.fruitsChosen >= 5 && !revealDone) {
+      setTimeout(() => {
+        addARMsg('你一直在選⋯⋯\n但你沒有靠近。');
+        setTimeout(() => triggerReveal(), 2000);
+      }, 1200);
     }
     setTimeout(() => { fruitCooldown = false; }, 1200);
   }, 400);
@@ -1266,6 +1269,10 @@ async function triggerReveal() {
     }
   }
 
+  /* Show exit notice */
+  await wait(2000);
+  addRevealSystemMsg('陌生號碼已退出聊天');
+
   /* Auto-reset after 90s so next visitor starts fresh */
   await wait(90000);
   if (S.phase === 'reveal') location.reload();
@@ -1281,6 +1288,19 @@ function addRevealMsg(text) {
     <div class="b-meta">${ts()}</div></div>`;
   feed.insertBefore(div, tdots);
   requestAnimationFrame(() => requestAnimationFrame(() => div.classList.add('in')));
+  setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
+}
+
+function addRevealSystemMsg(text) {
+  const feed  = document.getElementById('reveal-feed');
+  const tdots = document.getElementById('reveal-typing');
+  const div = document.createElement('div');
+  div.className = 'date-div';
+  div.style.opacity = '0';
+  div.style.transition = 'opacity 0.8s ease';
+  div.innerHTML = `<span>${text}</span>`;
+  feed.insertBefore(div, tdots);
+  requestAnimationFrame(() => requestAnimationFrame(() => { div.style.opacity = '1'; }));
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
 }
 
