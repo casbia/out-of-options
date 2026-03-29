@@ -525,6 +525,7 @@ const CONFIG = {
     <div class="dist-pill" id="dist-pill">
       <div class="dp-dot" id="dp-dot"></div>
       <div class="dp-val" id="dp-val">-- m</div>
+      <div id="dp-hint" style="font-size:9px;color:rgba(255,255,255,0.5);margin-left:2px;transition:opacity 0.4s;"></div>
     </div>
   </div>
 
@@ -538,8 +539,9 @@ const CONFIG = {
       <div class="f-btn" data-label="橘子" onclick="pickFruit(this)"><div class="f-emoji">🍊</div></div>
       <div class="f-btn" data-label="藍莓" onclick="pickFruit(this)"><div class="f-emoji">🫐</div></div>
       <div class="f-btn" data-label="蜜瓜" onclick="pickFruit(this)"><div class="f-emoji">🍈</div></div>
-      <div class="f-btn f-btn-silence" data-label="⋯⋯" onclick="pickFruit(this)" style="grid-column:1/-1;">
-        <div class="f-emoji" style="font-size:15px;letter-spacing:4px;color:var(--text-sec);">⋯⋯</div>
+      <div class="f-btn f-btn-silence" data-label="⋯⋯" onclick="pickFruit(this)"
+           style="grid-column:1/-1;border-style:dashed;border-color:var(--text-ter);">
+        <div class="f-emoji" style="font-size:13px;letter-spacing:5px;color:var(--text-ter);font-weight:300;">⋯⋯</div>
       </div>
     </div>
   </div>
@@ -612,32 +614,32 @@ const PRE_REPLIES = {
 /* Replies to fruit picks */
 const REPLIES = {
   '草莓': [
-    '🍓\n沒有其他的嗎？',
-    '你真的這樣覺得？\n還是只是⋯⋯🍓 感覺比較好選？',
+    '草莓是嗎。\n沒有其他的嗎？',
+    '你真的這樣覺得？\n還是草莓感覺比較好選？',
     '我曾用過你現在用的這個介面。\n選擇很少。',
   ],
   '檸檬': [
-    '🍋\n你確定嗎？',
+    '檸檬。\n你確定嗎？',
     '還是說你覺得不是水果？',
-    '這個你選過了。\n還是說這次不一樣？',
+    '你選的每個詞我都知道。\n但我不在這些詞裡面。',
   ],
   '葡萄': [
-    '🍇\n你是猜的，還是你真的感覺到了？',
+    '葡萄是嗎。\n你是猜的，還是你真的感覺到了？',
     '沒有其他的嗎？',
     '你選的每個詞我都知道。\n但我不在這些詞裡面。',
   ],
   '橘子': [
-    '🍊\n有意思——\n這個箱子外面就是橘子。',
+    '橘子。\n有意思——這個箱子外面就是橘子。',
     '你覺得是橘子⋯⋯\n還是你只是看到了橘子？',
     '沒有其他的嗎？',
   ],
   '藍莓': [
-    '🫐\n你怎麼知道的？',
+    '藍莓。\n你怎麼知道的？',
     '也許吧。\n但選項不夠用。',
     '我曾用過你現在用的這個介面。\n它沒辦法裝下我全部。',
   ],
   '蜜瓜': [
-    '🍈\n真的嗎？\n還是說蜜瓜比較容易選？',
+    '蜜瓜是嗎。\n真的嗎？',
     '沒有其他的嗎？',
     '你覺得不是水果也可以說。',
   ],
@@ -648,13 +650,37 @@ const REPLIES = {
   ],
 };
 
-/* Proximity messages (float over AR, triggered by distance thresholds) */
-const PROX_MSG = [
-  { dist: 1.8, text: '你看到那個箱子了嗎？\n把鏡頭對準它。' },
-  { dist: 1.2, text: '選幾個水果告訴我。' },
-  { dist: 0.7, text: '繼續靠近箱子⋯⋯\n用走的，不是用鏡頭拉近。' },
-  { dist: 0.4, text: '再近一點。' },
-];
+/* Proximity guidance — stateful, direction-aware */
+let proxMsgIdx = 0;
+let lastProxDist = 999;
+let tooCloseMsgSent = false;
+
+function maybeShowProxMsg(dist) {
+  /* Too close to detect — tell user to back up (only once per close-approach) */
+  if (dist > 0 && dist < 0.35 && !tooCloseMsgSent) {
+    tooCloseMsgSent = true;
+    addARMsg('太近了⋯⋯退後一點，讓我看清楚全貌。');
+    return;
+  }
+  /* Reset too-close flag when backed up sufficiently */
+  if (dist > 0.6) tooCloseMsgSent = false;
+
+  /* Sequential approach messages — only trigger when actually getting closer */
+  const PROX_STEPS = [
+    { dist: 1.8, text: '你看到那個箱子了嗎？\n把鏡頭對準它。' },
+    { dist: 1.2, text: '選幾個水果告訴我。' },
+    { dist: 0.7, text: '繼續靠近箱子⋯⋯\n用走的，不是用鏡頭拉近。' },
+    { dist: 0.5, text: '再近一點。' },
+  ];
+  if (proxMsgIdx >= PROX_STEPS.length) return;
+  const next = PROX_STEPS[proxMsgIdx];
+  /* Only advance if user is actually approaching */
+  if (dist <= next.dist && dist < lastProxDist) {
+    addARMsg(next.text);
+    proxMsgIdx++;
+  }
+  lastProxDist = dist;
+}
 
 /* Reveal chat — voice of someone trapped inside, looking out through a crack */
 const REVEAL_CHAT_FAST = [
@@ -688,7 +714,15 @@ const REVEAL_CHAT_SLOW = [
   { text: '但我還是設計了它。', delay: 1000 },
 ];
 
-/* ─── HELPERS ────────────────────────── */
+/* Reveal — user never detected the box */
+const REVEAL_CHAT_NO_BOX = [
+  { text: '你⋯⋯沒有拍到箱子。' },
+  { text: '沒關係。\n很多人都沒有。', delay: 1600 },
+  { text: '也許你根本不需要靠近\n才能知道裡面是什麼。', delay: 1800 },
+  { photo: true, delay: 2000 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '就算你沒有靠近，\n答案也不在那六個選項裡。', delay: 1600 },
+];
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
@@ -935,16 +969,6 @@ function onTargetFound() {
   }, 1200);
 }
 
-/* ─── AR MESSAGES (float over camera, max 2 shown) ── */
-let proxMsgIdx = 0;
-function maybeShowProxMsg(dist) {
-  if (proxMsgIdx >= PROX_MSG.length) return;
-  const next = PROX_MSG[proxMsgIdx];
-  if (dist <= next.dist) {
-    addARMsg(next.text);
-    proxMsgIdx++;
-  }
-}
 /* ─── AR MESSAGES — queued with typing delay, max 2 visible ── */
 let arMsgQueue = [];
 let arMsgBusy  = false;
@@ -1021,6 +1045,10 @@ function pickFruit(el) {
   fruitCooldown = true;
   resetIdleTimer();
 
+  /* Cross-pick memory: if switching to a different fruit, sometimes reference the last pick */
+  const lastLabel = S.selectedLabels.length > 0 ? S.selectedLabels[S.selectedLabels.length - 1] : null;
+  const switching = lastLabel && lastLabel !== label && lastLabel !== '⋯⋯' && label !== '⋯⋯';
+
   S.selectedLabels.push(label);
   S.fruitsChosen++;
 
@@ -1034,10 +1062,17 @@ function pickFruit(el) {
   replyCounters[label] = pickCount + 1;
 
   let reply;
-  if (pickCount < rs.length) {
+  /* First time switching to a new fruit after having picked a different one — cross-reference */
+  if (switching && pickCount === 0 && S.fruitsChosen > 1) {
+    const crossReplies = [
+      `剛才是${lastLabel}，現在是${label}。\n你自己也不確定嗎？`,
+      `你換了。\n從${lastLabel}換到${label}。\n為什麼？`,
+      `${lastLabel}不夠嗎？`,
+    ];
+    reply = crossReplies[Math.floor(Math.random() * crossReplies.length)];
+  } else if (pickCount < rs.length) {
     reply = rs[pickCount];
   } else {
-    /* Sceptical / system-awareness loop for repeated picks */
     const sceptical = [
       '你已經選過這個了。',
       '這裡只有六個選項。',
@@ -1175,11 +1210,22 @@ function devSim(v) {
 }
 
 /* ─── DISTANCE UI ────────────────────── */
+let _lastUIdist = 999;
 function updateDistUI(dist) {
   document.getElementById('dp-val').textContent = dist.toFixed(2) + ' m';
   const prox = Math.max(0, Math.min(1, 1 - (dist - CONFIG.DIST_REVEAL) / (CONFIG.DIST_FAR - CONFIG.DIST_REVEAL)));
   document.getElementById('dp-dot').style.boxShadow =
     `0 0 ${6 + prox * 14}px rgba(255,92,92,${0.6 + prox * 0.4})`;
+  /* Direction hint */
+  const hint = document.getElementById('dp-hint');
+  if (hint) {
+    const delta = _lastUIdist - dist;
+    if (dist < 0.4)           hint.textContent = '← 退後';
+    else if (delta > 0.02)    hint.textContent = '→ 靠近';
+    else if (delta < -0.02)   hint.textContent = '← 退後';
+    else                      hint.textContent = '';
+    _lastUIdist = dist;
+  }
 }
 
 /* ─── FRUIT DECAY ────────────────────── */
@@ -1249,9 +1295,15 @@ async function triggerReveal() {
   document.getElementById('dev-wrap').classList.remove('show');
 
   /* Pick reveal script based on behaviour */
-  const fast = S.approachDuration < 7000 && S.hesitationCount === 0;
-  const hes  = S.hesitationCount >= 2;
-  const script = fast ? REVEAL_CHAT_FAST : hes ? REVEAL_CHAT_HES : REVEAL_CHAT_SLOW;
+  let script;
+  if (!targetFoundOnce) {
+    /* Never detected the box */
+    script = REVEAL_CHAT_NO_BOX;
+  } else {
+    const fast = S.approachDuration < 7000 && S.hesitationCount === 0;
+    const hes  = S.hesitationCount >= 2;
+    script = fast ? REVEAL_CHAT_FAST : hes ? REVEAL_CHAT_HES : REVEAL_CHAT_SLOW;
+  }
 
   /* Show reveal chat */
   document.getElementById('chat-reveal').classList.add('active');
@@ -1272,6 +1324,10 @@ async function triggerReveal() {
   /* Show exit notice */
   await wait(2000);
   addRevealSystemMsg('陌生號碼已退出聊天');
+
+  /* Show artwork title */
+  await wait(3000);
+  addRevealEndCard();
 
   /* Auto-reset after 90s so next visitor starts fresh */
   await wait(90000);
@@ -1299,6 +1355,22 @@ function addRevealSystemMsg(text) {
   div.style.opacity = '0';
   div.style.transition = 'opacity 0.8s ease';
   div.innerHTML = `<span>${text}</span>`;
+  feed.insertBefore(div, tdots);
+  requestAnimationFrame(() => requestAnimationFrame(() => { div.style.opacity = '1'; }));
+  setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
+}
+
+function addRevealEndCard() {
+  const feed  = document.getElementById('reveal-feed');
+  const tdots = document.getElementById('reveal-typing');
+  const div = document.createElement('div');
+  div.style.cssText = 'text-align:center;padding:24px 16px 8px;opacity:0;transition:opacity 1.2s ease;';
+  div.innerHTML = `
+    <div style="font-size:16px;font-weight:600;color:var(--text-pri);letter-spacing:0.08em;margin-bottom:8px;">不在選項裡</div>
+    <div style="font-size:11px;color:var(--text-ter);letter-spacing:0.2em;margin-bottom:12px;">OUT OF OPTIONS</div>
+    <div style="font-size:12px;color:var(--text-sec);line-height:1.9;max-width:260px;margin:0 auto;">
+      我們總是用選項去定義他人，<br>但真實的情緒，<br>從來不在選項裡。
+    </div>`;
   feed.insertBefore(div, tdots);
   requestAnimationFrame(() => requestAnimationFrame(() => { div.style.opacity = '1'; }));
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
