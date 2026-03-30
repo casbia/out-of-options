@@ -6,14 +6,6 @@
 <link rel="icon" href="data:,">
 <title>Out of Options</title>
 
-<!--
-  替換清單：
-  1. targets.mind → https://hiukim.github.io/mind-ar-js-doc/tools/compile
-  2. reveal.jpg   → 從箱內拍攝的真實照片，同資料夾
-  3. MARKER_WIDTH_M → 你實際印出的 marker 寬度（公尺），預設 0.12
-  4. DEV_MODE: false → 展場正式使用前改掉
--->
-
 <script type="importmap">
 {
   "imports": {
@@ -27,9 +19,6 @@
   import * as THREE from 'three';
   import { MindARThree } from 'mindar-image-three';
 
-  /* THREE r152 removed outputEncoding. MindAR still sets it internally.
-     Override the prototype setter unconditionally so the call is a no-op
-     and no console warning ever fires. */
   Object.defineProperty(THREE.WebGLRenderer.prototype, 'outputEncoding', {
     set()  { /* silently ignored */ },
     get()  { return 3001; },
@@ -47,17 +36,18 @@
 
 <style>
 :root {
-  --bg:        #F2F4F7;
+  --bg:        #e5e5f2;
   --surface:   #FFFFFF;
   --surface2:  #F7F8FA;
   --border:    #E8EAED;
   --text-pri:  #1C1E21;
   --text-sec:  #65676B;
   --text-ter:  #90949C;
-  --accent:    #FF5C5C;
-  --accent-lt: #FFF0F0;
+  --accent:    #A4343E;
+  --accent-lt: #F5E6E7;
   --blue:      #1877F2;
   --green:     #31A24C;
+  --avt-bg:    #296E7D;
   --r-sm:10px; --r-md:16px; --r-lg:22px; --r-pill:999px;
   --sh-sm: 0 1px 4px rgba(0,0,0,0.10);
   --sh-md: 0 4px 16px rgba(0,0,0,0.12);
@@ -124,7 +114,7 @@ html, body {
   cursor:pointer; transition:transform 0.15s;
 }
 .msg-card:active { transform:scale(0.97); }
-.mc-avt { width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative; }
+.mc-avt { width:46px;height:46px;border-radius:50%;background:var(--avt-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative; }
 .mc-badge { position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700; }
 .mc-body { flex:1; min-width:0; }
 .mc-name { font-size:15px; font-weight:600; margin-bottom:3px; }
@@ -136,7 +126,7 @@ html, body {
   background:var(--accent); color:#fff;
   font-size:16px; font-weight:600;
   border:none; border-radius:var(--r-pill); cursor:pointer;
-  box-shadow:0 4px 16px rgba(255,92,92,0.4);
+  box-shadow:0 4px 16px rgba(164,52,62,0.4);
   transition:all 0.2s; letter-spacing:0.03em;
 }
 .open-btn:active { transform:scale(0.97); box-shadow:none; }
@@ -162,7 +152,7 @@ html, body {
 #chat-pre.active { opacity:1; pointer-events:all; }
 
 /* ══════════════════════════════
-   AR LAYER (camera, always behind)
+   AR LAYER
 ══════════════════════════════ */
 #ar-container {
   position:fixed; inset:0; z-index:1;
@@ -172,7 +162,6 @@ html, body {
 
 /* ══════════════════════════════
    AR EXPERIENCE OVERLAY
-   (transparent over camera)
 ══════════════════════════════ */
 #ar-ux {
   position:fixed; inset:0; z-index:10;
@@ -182,7 +171,6 @@ html, body {
 }
 #ar-ux.active { opacity:1; pointer-events:all; }
 
-/* Top: scan frame + messages */
 .ar-top {
   flex:1; position:relative;
   display:flex; flex-direction:column;
@@ -191,7 +179,6 @@ html, body {
   pointer-events:none;
 }
 
-/* Scan viewfinder (shown before target found) */
 .scan-vf { width:180px; height:180px; position:relative; }
 .vc { position:absolute; width:24px; height:24px; }
 .vc.tl{top:0;left:0;border-top:3px solid var(--accent);border-left:3px solid var(--accent);border-radius:3px 0 0 0;}
@@ -202,14 +189,12 @@ html, body {
 @keyframes sweep { 0%{top:3px;opacity:0}8%{opacity:0.85}92%{opacity:0.85}100%{top:175px;opacity:0} }
 .scan-label { font-size:13px;font-weight:500;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.38);padding:6px 16px;border-radius:var(--r-pill);backdrop-filter:blur(4px);text-align:center; }
 
-/* Target-found: incoming messages float over camera */
 .ar-msg-stream {
   position:absolute; top:52px; left:0; right:0;
   display:flex; flex-direction:column; align-items:flex-start;
   gap:8px; padding:0 16px;
   pointer-events:none;
 }
-/* Avatar + bubble row */
 .ar-bubble-row {
   display:flex; align-items:flex-end; gap:8px;
   max-width:88%;
@@ -219,16 +204,19 @@ html, body {
 .ar-bubble-row.in { opacity:1; transform:none; }
 .ar-avt {
   width:28px; height:28px; border-radius:50%;
-  background:linear-gradient(135deg,#2d6a6a,#1a4a5a);
+  background:var(--avt-bg);
   display:flex; align-items:center; justify-content:center;
   font-size:14px; flex-shrink:0;
 }
+/* AR bubble: no forced word-break, let Chinese wrap naturally */
 .ar-bubble {
   padding:10px 14px;
-  font-size:14px; line-height:1.5;
+  font-size:14px; line-height:1.6;
   background:rgba(255,255,255,0.93); color:var(--text-pri);
   border-radius:16px 16px 16px 4px;
   box-shadow:var(--sh-sm); backdrop-filter:blur(10px);
+  word-break:normal; overflow-wrap:break-word;
+  white-space:pre-wrap;
 }
 
 .ar-typing-dot {
@@ -239,7 +227,6 @@ html, body {
 .ar-typing-dot:nth-child(2){animation-delay:0.2s}
 .ar-typing-dot:nth-child(3){animation-delay:0.4s}
 
-/* Distance pill */
 .dist-pill {
   position:absolute; top:16px; right:16px;
   background:rgba(0,0,0,0.45); backdrop-filter:blur(8px);
@@ -248,10 +235,9 @@ html, body {
   pointer-events:none; opacity:0; transition:opacity 0.4s;
 }
 .dist-pill.visible { opacity:1; }
-.dp-dot { width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(255,92,92,0.8);transition:box-shadow 0.4s; }
+.dp-dot { width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(164,52,62,0.8);transition:box-shadow 0.4s; }
 .dp-val { font-size:12px;font-weight:600;color:#fff;font-family:monospace;min-width:40px; }
 
-/* Shared options dock — used in pre-chat AND AR overlay */
 .options-dock {
   flex-shrink:0; background:var(--surface);
   border-top:1px solid var(--border); padding:12px 16px 32px;
@@ -261,11 +247,6 @@ html, body {
   letter-spacing:0.08em; margin-bottom:10px; text-transform:uppercase;
 }
 
-/* ══════════════════════════════
-   BOTTOM DOCK (fruit options)
-   Lives inside #ar-ux so it's
-   always above the camera feed
-══════════════════════════════ */
 .ar-bottom {
   flex-shrink:0;
   background:rgba(255,255,255,0.93);
@@ -293,7 +274,6 @@ html, body {
 .f-btn:active { transform:scale(0.93); }
 .f-btn.selected { background:var(--accent-lt); border-color:var(--accent); }
 
-/* Decay states — smooth CSS transitions on each button */
 .f-btn { transition: opacity 0.6s ease, transform 0.6s ease, filter 0.6s ease; }
 .f-btn.decay-1 { opacity:0.7;  transform:scale(0.96) rotate(-1deg);              filter:blur(0.4px); }
 .f-btn.decay-2 { opacity:0.45; transform:scale(0.90) rotate(3deg)  skewX(-4deg); filter:blur(1.2px) saturate(0.6); }
@@ -319,7 +299,6 @@ html, body {
 }
 #chat-reveal.active { opacity:1; pointer-events:all; }
 
-/* Shared chat chrome */
 .chat-hdr {
   flex-shrink:0; padding:12px 16px 10px;
   background:var(--surface); border-bottom:1px solid var(--border);
@@ -327,7 +306,7 @@ html, body {
   box-shadow:var(--sh-sm);
 }
 .ch-back { font-size:22px; color:var(--blue); cursor:pointer; padding:4px; line-height:1; }
-.ch-avt { width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative; }
+.ch-avt { width:38px;height:38px;border-radius:50%;background:var(--avt-bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative; }
 .ch-online { position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid var(--surface); }
 .ch-name   { font-size:16px; font-weight:600; }
 .ch-status { font-size:12px; color:var(--green); }
@@ -345,14 +324,22 @@ html, body {
 .msg.in { opacity:1; transform:none; }
 .msg-sys { align-self:flex-start; align-items:flex-end; margin-bottom:4px; }
 .msg-usr { align-self:flex-end; flex-direction:row-reverse; margin-bottom:4px; }
-.m-avt { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
-.bubble { padding:10px 14px;font-size:15px;line-height:1.5;max-width:76%;word-break:normal;overflow-wrap:break-word; }
+.m-avt { width:28px;height:28px;border-radius:50%;background:var(--avt-bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
+
+/* Bubble: no forced word-break, Chinese wraps naturally, \n respected */
+.bubble {
+  padding:10px 14px;
+  font-size:15px; line-height:1.6;
+  max-width:76%;
+  word-break:normal;
+  overflow-wrap:break-word;
+  white-space:pre-wrap;
+}
 .msg-sys .bubble { background:var(--surface);color:var(--text-pri);border-radius:18px 18px 18px 4px;box-shadow:var(--sh-sm); }
 .msg-usr .bubble { background:var(--blue);color:#fff;border-radius:18px 18px 4px 18px; }
 .b-meta { font-size:10px;color:var(--text-ter);margin-top:3px;padding:0 4px; }
 .msg-usr .b-meta { text-align:right; }
 
-/* Photo message — sits in its own row with avatar */
 .photo-row {
   display:flex; align-items:flex-end; gap:8px;
   align-self:flex-start; margin-bottom:4px;
@@ -403,26 +390,18 @@ const CONFIG = {
   MIND_FILE:      'targets.mind',
   REVEAL_PHOTO:   'reveal.jpg',
 
-  /*
-    箱子尺寸說明：
-    - 頂面/正面 marker：0.45 × 0.3 m，取寬邊 0.45
-    - 側面 marker：0.3 × 0.3 m
-    多面追蹤時程式會自動切換 activeMarkerWidth。
-    預設用頂/正面寬邊。
-  */
-  MARKER_WIDTH_LARGE: 0.45,   /* 頂面/正面 */
-  MARKER_WIDTH_SMALL: 0.30,   /* 側面 */
-  MARKER_WIDTH_M: 0.45,       /* 目前使用的寬（會由 activeAnchor 動態切換） */
+  MARKER_WIDTH_LARGE: 0.45,
+  MARKER_WIDTH_SMALL: 0.30,
+  MARKER_WIDTH_M: 0.45,
 
   DIST_FAR:    2.5,
   DIST_MID:    0.55,
   DIST_CLOSE:  0.35,
-  DIST_REVEAL: 0.45,   /* 45 cm — MindAR loses tracking closer than this */
+  DIST_REVEAL: 0.45,
   DEV_MODE:    false,
 };
 </script>
 
-<!-- AR camera layer -->
 <div id="ar-container"></div>
 
 <!-- ══ ENTRY ══ -->
@@ -449,7 +428,6 @@ const CONFIG = {
     </div>
     <div class="msg-card" onclick="startAR()">
       <div class="mc-avt">
-        <!-- Anonymous person silhouette -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.75)"/>
           <path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-linecap="round" fill="none"/>
@@ -475,7 +453,7 @@ const CONFIG = {
   <div class="spin-label">正在啟動 AR 引擎⋯⋯</div>
 </div>
 
-<!-- ══ PRE-SCAN CHAT (before AR) ══ -->
+<!-- ══ PRE-SCAN CHAT ══ -->
 <div id="chat-pre">
   <div class="chat-hdr">
     <div class="ch-avt">
@@ -494,7 +472,6 @@ const CONFIG = {
       <div class="typing-bub"><span></span><span></span><span></span></div>
     </div>
   </div>
-  <!-- Pre-chat fruit options (shown after story) -->
   <div class="options-dock" id="pre-options-dock" style="display:none">
     <div class="od-label">你覺得是哪一種？</div>
     <div class="fruit-grid">
@@ -506,29 +483,22 @@ const CONFIG = {
       <div class="f-btn" data-label="蜜瓜" onclick="pickPreFruit(this)"><div class="f-emoji">🍈</div></div>
     </div>
   </div>
-  <!-- Camera launch button (shown after pre-chat reply) -->
   <div id="pre-cam-btn" style="display:none;flex-shrink:0;padding:12px 16px 32px;background:var(--surface);border-top:1px solid var(--border);">
-    <button onclick="openARPhase()" style="width:100%;padding:15px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;border:none;border-radius:var(--r-pill);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 16px rgba(255,92,92,0.35);letter-spacing:0.03em;">
+    <button onclick="openARPhase()" style="width:100%;padding:15px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;border:none;border-radius:var(--r-pill);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 16px rgba(164,52,62,0.35);letter-spacing:0.03em;">
       <span style="font-size:20px;">📷</span> 開啟鏡頭
     </button>
   </div>
 </div>
 
-<!-- ══ AR UX OVERLAY (over full-screen camera) ══ -->
+<!-- ══ AR UX OVERLAY ══ -->
 <div id="ar-ux">
-  <!-- top area: scan frame / AR messages / distance pill -->
   <div class="ar-top">
-    <!-- AR message stream (visible from start) -->
     <div class="ar-msg-stream" id="ar-msgs"></div>
-
-    <!-- distance pill top-right -->
     <div class="dist-pill" id="dist-pill">
       <div class="dp-dot" id="dp-dot"></div>
       <div class="dp-val" id="dp-val">-- m</div>
     </div>
   </div>
-
-  <!-- bottom dock: fruit options -->
   <div class="ar-bottom" id="ar-bottom">
     <div class="dock-label">選一個水果</div>
     <div class="fruit-grid" id="fruit-grid">
@@ -576,7 +546,7 @@ const CONFIG = {
 <script>
 /* ─── STATE ──────────────────────────── */
 const S = {
-  phase: 'entry',          /* entry | loading | pre-chat | ar | reveal */
+  phase: 'entry',
   fruitsChosen: 0,
   selectedLabels: [],
   approachStartTime: 0,
@@ -590,7 +560,6 @@ const S = {
 };
 
 /* ─── CONTENT ────────────────────────── */
-/* Pre-AR chat (before camera opens) */
 const PRE_CHAT = [
   { text: '不好意思，你是誰？外送員嗎？能不能幫幫我？' },
   { text: '我剛收到取件通知說我的包裹到了，但我現在有點難移動⋯⋯' },
@@ -599,7 +568,6 @@ const PRE_CHAT = [
   { text: '雖然有點突然，但我想問，你覺得這次裡面是什麼？', action: 'show-pre-options' },
 ];
 
-/* Pre-chat fruit replies */
 const PRE_REPLIES = {
   '草莓': ['真的嗎？感覺不太可能吧！', '⋯⋯希望你說得對。'],
   '檸檬': ['嗯。\n我也不確定。', '說不定吧。'],
@@ -609,7 +577,6 @@ const PRE_REPLIES = {
   '蜜瓜': ['這樣的話倒是好事！', '⋯⋯希望如此。'],
 };
 
-/* Replies to fruit picks */
 const REPLIES = {
   '草莓': [
     '草莓是嗎？\n沒有其他的嗎？',
@@ -648,22 +615,18 @@ const REPLIES = {
   ],
 };
 
-/* Proximity guidance — stateful, direction-aware */
 let proxMsgIdx = 0;
 let lastProxDist = 999;
 let tooCloseMsgSent = false;
 
 function maybeShowProxMsg(dist) {
-  /* Too close to detect — tell user to back up (only once per close-approach) */
   if (dist > 0 && dist < 0.35 && !tooCloseMsgSent) {
     tooCloseMsgSent = true;
     addARMsg('太近了⋯⋯退後一點，讓我看清楚全貌。');
     return;
   }
-  /* Reset too-close flag when backed up sufficiently */
   if (dist > 0.6) tooCloseMsgSent = false;
 
-  /* Sequential approach messages — only trigger when actually getting closer */
   const PROX_STEPS = [
     { dist: 1.8, text: '你看到那個箱子了嗎？\n把鏡頭對準它。' },
     { dist: 1.2, text: '選個水果吧！告訴我你的想法。' },
@@ -672,7 +635,6 @@ function maybeShowProxMsg(dist) {
   ];
   if (proxMsgIdx >= PROX_STEPS.length) return;
   const next = PROX_STEPS[proxMsgIdx];
-  /* Only advance if user is actually approaching */
   if (dist <= next.dist && dist < lastProxDist) {
     addARMsg(next.text);
     proxMsgIdx++;
@@ -680,7 +642,6 @@ function maybeShowProxMsg(dist) {
   lastProxDist = dist;
 }
 
-/* Reveal chat — voice of someone trapped inside, looking out through a crack */
 const REVEAL_CHAT_FAST = [
   { text: '你花了多久才靠過來？' },
   { text: '感覺很久。', delay: 1400 },
@@ -711,8 +672,6 @@ const REVEAL_CHAT_SLOW = [
   { text: '我不是你想的任何水果，\n沒有東西能定義我。', delay: 1600 },
   { text: '但我還是想聽聽你怎麼說。', delay: 1000 },
 ];
-
-/* Reveal — user never detected the box */
 const REVEAL_CHAT_NO_BOX = [
   { text: '你⋯⋯沒有拍到箱子。' },
   { text: '沒關係。\n很多人都沒有。', delay: 1600 },
@@ -721,6 +680,7 @@ const REVEAL_CHAT_NO_BOX = [
   { text: '其實⋯⋯\n裡面是我。', delay: 1600 },
   { text: '就算你選了再多選項，\n答案也不在那裡面！', delay: 1600 },
 ];
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
@@ -731,7 +691,6 @@ function ts() {
 }
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-/* Clock */
 setInterval(() => {
   const el = document.getElementById('entry-time');
   if (el) el.textContent = ts();
@@ -744,7 +703,7 @@ function addPreMsg(text) {
   const div = document.createElement('div');
   div.className = 'msg msg-sys';
   div.innerHTML = `<div class="m-avt"><svg width="16" height="16" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.8)"/><path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></div>
-    <div><div class="bubble">${text.replace(/\n/g,'<br>')}</div>
+    <div><div class="bubble">${text}</div>
     <div class="b-meta">${ts()}</div></div>`;
   feed.insertBefore(div, tdots);
   requestAnimationFrame(() => requestAnimationFrame(() => div.classList.add('in')));
@@ -756,7 +715,6 @@ function hidePreTyping()  { document.getElementById('pre-typing').classList.remo
 async function runPreChat() {
   for (const step of PRE_CHAT) {
     showPreTyping();
-    /* Typing duration: realistic per character */
     await wait(1000 + step.text.replace(/\n/g,'').length * 32 + Math.random()*400);
     hidePreTyping();
     addPreMsg(step.text);
@@ -767,12 +725,10 @@ async function runPreChat() {
       setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
       return;
     }
-    /* Longer reading pause between messages */
     await wait(1400 + Math.random()*600);
   }
 }
 
-/* User picks fruit in pre-chat */
 let prePickDone = false;
 async function pickPreFruit(el) {
   if (prePickDone) return;
@@ -781,7 +737,6 @@ async function pickPreFruit(el) {
   const label = el.dataset.label;
   el.classList.add('selected');
 
-  /* Show user message */
   const feed  = document.getElementById('pre-feed');
   const tdots = document.getElementById('pre-typing');
   const userDiv = document.createElement('div');
@@ -790,10 +745,8 @@ async function pickPreFruit(el) {
   feed.insertBefore(userDiv, tdots);
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
 
-  /* Hide options */
   document.getElementById('pre-options-dock').style.display = 'none';
 
-  /* Reply */
   await wait(400);
   showPreTyping();
   const rs = PRE_REPLIES[label] || ['⋯⋯'];
@@ -802,7 +755,6 @@ async function pickPreFruit(el) {
   hidePreTyping();
   addPreMsg(reply);
 
-  /* Transition — show camera button after enough reading time */
   await wait(1600);
   addPreMsg('能幫我開鏡頭對準那個箱子嗎？告訴我你覺得它裡面是什麼。');
   await wait(1800);
@@ -820,7 +772,6 @@ async function startAR() {
   } catch {
     const hint = document.getElementById('entry-hint');
     if (hint && hint.style.visibility === 'visible') {
-      /* Already shown hint — second failure: show alert */
       alert('無法取得相機權限。\n請確認：\n① 使用 HTTPS 網址\n② iPhone 請用 Safari\n③ Android 請用 Chrome\n④ 瀏覽器設定中允許此網站使用相機');
     } else {
       if (hint) { hint.style.visibility = 'visible'; hint.style.color = 'var(--accent)'; }
@@ -844,44 +795,29 @@ async function startAR() {
       width:  { ideal: 1280 },
       height: { ideal: 720 },
     },
-    /* Close-range tracking optimisation:
-       filterMinCF very low = tracks at steep angles and close distances
-       filterBeta high = fast response, less lag when moving
-       missTolerance high = doesn't give up quickly when briefly occluded
-       warmupTolerance low = fast target acquisition */
-    filterMinCF:     0.000001,
-    filterBeta:      10000,
-    missTolerance:   20,
-    warmupTolerance: 1,
+    filterMinCF:     0.001,
+    filterBeta:      1000,
+    missTolerance:   5,
+    warmupTolerance: 3,
   });
 
   const { renderer, scene, camera } = S.mindar;
   renderer.outputColorSpace = 'srgb';
 
-  /* ── Multi-face anchors ──────────────────────────────────────────
-     targets.mind can contain up to 6 image targets (one per box face).
-     We register an anchor for each available target index (0–5).
-     The one currently visible drives distance estimation.
-     Compile all face images together at:
-     https://hiukim.github.io/mind-ar-js-doc/tools/compile
-  ──────────────────────────────────────────────────────────────── */
-  const NUM_FACES = 3;   /* ← change to however many images you compiled */
+  const NUM_FACES = 3;
   const anchors = [];
   let activeAnchor = null;
 
   for (let i = 0; i < NUM_FACES; i++) {
     const a = S.mindar.addAnchor(i);
-    /* Large face (index 0) = top/front, rest = sides */
     a._markerWidth = (i === 0) ? CONFIG.MARKER_WIDTH_LARGE : CONFIG.MARKER_WIDTH_SMALL;
     a.onTargetFound = () => {
       S.markerVisible = true;
       activeAnchor = a;
       CONFIG.MARKER_WIDTH_M = a._markerWidth;
-      /* Full reset — force immediate jump to first real reading */
       distBuffer.length = 0;
       S.estimatedDist = 999;
       S.lastDist = 999;
-      /* Show dist pill, clear stale value */
       document.getElementById('dp-val').textContent = '⋯⋯';
       document.getElementById('dist-pill').classList.add('visible');
       if (S.phase === 'ar') onTargetFound();
@@ -890,10 +826,8 @@ async function startAR() {
       if (activeAnchor === a) {
         S.markerVisible = false;
         activeAnchor = null;
-        /* Hide dist pill — don't show stale frozen value */
         document.getElementById('dist-pill').classList.remove('visible');
         document.getElementById('dp-val').textContent = '-- m';
-        /* Clear buffer so old values don't corrupt next sighting */
         distBuffer.length = 0;
         S.estimatedDist = 999;
         S.lastDist = 999;
@@ -912,9 +846,7 @@ async function startAR() {
     if (S.markerVisible && activeAnchor && S.phase === 'ar') estimateDist(activeAnchor);
   });
 
-  /* Show pre-chat first */
   S.phase = 'pre-chat';
-  showScreen('screen-loading'); /* hide loading */
   document.getElementById('screen-loading').classList.remove('active');
   document.getElementById('chat-pre').classList.add('active');
   runPreChat();
@@ -930,7 +862,6 @@ function openARPhase() {
   startIdleNudge();
 }
 
-/* Idle nudge: if user hasn't interacted, remind them every ~14s */
 const NUDGE_MSGS = [
   '你認為包裹裡面是什麼？',
   '鏡頭對準箱子⋯⋯我想看看它的樣子。',
@@ -955,19 +886,17 @@ function startIdleNudge() {
   }, 3000);
 }
 
-/* ─── TARGET FOUND ──────────────────── */
 let targetFoundOnce = false;
 function onTargetFound() {
   if (targetFoundOnce) return;
   targetFoundOnce = true;
   initDecayOrder();
-  /* Small delay before first message so user can see the camera view first */
   setTimeout(() => {
     addARMsg('找到了！\n告訴我⋯⋯你覺得裡面是什麼？');
   }, 1200);
 }
 
-/* ─── AR MESSAGES — queued with typing delay, max 2 visible ── */
+/* ─── AR MESSAGES ── */
 let arMsgQueue = [];
 let arMsgBusy  = false;
 
@@ -981,7 +910,6 @@ async function drainARQueue() {
   while (arMsgQueue.length > 0) {
     const text = arMsgQueue.shift();
     await showARMsgWithTyping(text);
-    /* small pause between consecutive messages */
     if (arMsgQueue.length > 0) await new Promise(r => setTimeout(r, 300));
   }
   arMsgBusy = false;
@@ -990,7 +918,6 @@ async function drainARQueue() {
 async function showARMsgWithTyping(text) {
   const stream = document.getElementById('ar-msgs');
 
-  /* Show typing indicator */
   const typingRow = document.createElement('div');
   typingRow.className = 'ar-bubble-row';
   typingRow.innerHTML = `<div class="ar-avt"><svg width="16" height="16" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.8)"/><path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></div>
@@ -1002,17 +929,14 @@ async function showARMsgWithTyping(text) {
   stream.appendChild(typingRow);
   requestAnimationFrame(() => requestAnimationFrame(() => typingRow.classList.add('in')));
 
-  /* Enforce max 2 rows — fade oldest immediately */
   pruneARRows(stream, 2);
 
-  /* Wait proportional to text length */
   const delay = 600 + text.length * 28 + Math.random() * 200;
   await new Promise(r => setTimeout(r, delay));
 
-  /* Replace typing indicator with real message */
-  typingRow.querySelector('.ar-bubble').innerHTML = text;
+  /* Use textContent to avoid HTML injection — \n rendered by white-space:pre-wrap */
+  typingRow.querySelector('.ar-bubble').textContent = text;
 
-  /* Ensure still max 2 after adding */
   pruneARRows(stream, 2);
 }
 
@@ -1030,7 +954,7 @@ function pruneARRows(stream, max) {
 
 /* ─── FRUIT PICK ─────────────────────── */
 let fruitCooldown = false;
-const replyCounters = {};   /* track how many times each label has been picked */
+const replyCounters = {};
 
 function pickFruit(el) {
   if (!el) return;
@@ -1043,24 +967,20 @@ function pickFruit(el) {
   fruitCooldown = true;
   resetIdleTimer();
 
-  /* Cross-pick memory: if switching to a different fruit, sometimes reference the last pick */
   const lastLabel = S.selectedLabels.length > 0 ? S.selectedLabels[S.selectedLabels.length - 1] : null;
   const switching = lastLabel && lastLabel !== label && lastLabel !== '⋯⋯' && label !== '⋯⋯';
 
   S.selectedLabels.push(label);
   S.fruitsChosen++;
 
-  /* Flash selected state */
   el.classList.add('selected');
   setTimeout(() => el.classList.remove('selected'), 1800);
 
-  /* Cycle through replies in order; after exhausting all, use sceptical loop */
   const rs = REPLIES[label] || ['⋯⋯'];
   const pickCount = replyCounters[label] || 0;
   replyCounters[label] = pickCount + 1;
 
   let reply;
-  /* First time switching to a new fruit after having picked a different one — cross-reference */
   if (switching && pickCount === 0 && S.fruitsChosen > 1) {
     const crossReplies = [
       `剛才是${lastLabel}，現在是${label}。\n難道說你也不確定嗎？`,
@@ -1086,11 +1006,9 @@ function pickFruit(el) {
 
   setTimeout(() => {
     addARMsg(reply);
-    /* After 3 picks: prompt to approach physically */
     if (S.fruitsChosen === 3) {
       setTimeout(() => addARMsg('好了⋯⋯現在靠近箱子。\n我想看有水果的那面。'), 1600);
     }
-    /* After 8 picks without approaching: trigger reveal directly */
     if (S.fruitsChosen >= 8 && !revealDone) {
       setTimeout(() => {
         addARMsg('你一直在選⋯⋯\n但你沒有靠近。');
@@ -1112,7 +1030,6 @@ async function rearCam() {
   } catch { return undefined; }
 }
 
-/* ─── DISTANCE ESTIMATION ────────────────────────── */
 const distBuffer = [];
 const DIST_BUF_SIZE = 6;
 
@@ -1127,17 +1044,14 @@ function estimateDist(anchor) {
   const cW = S.mindar.renderer.domElement.clientWidth;
   const px = Math.abs(r.x - l.x) * cW / 2;
 
-  /* Need a meaningful pixel width */
   if (px < 8) return;
 
   const fov = (cam.fov * Math.PI) / 180;
   const fc  = (cW / 2) / Math.tan(fov / 2);
   const rawDist = (CONFIG.MARKER_WIDTH_M * fc) / px;
 
-  /* Hard clamp — physically impossible values discarded immediately */
   if (rawDist < 0.04 || rawDist > 5.0) return;
 
-  /* Adaptive spike rejection — tighter multiplier when already close */
   if (distBuffer.length >= 3) {
     const sorted = [...distBuffer].sort((a,b) => a-b);
     const med = sorted[Math.floor(sorted.length / 2)];
@@ -1153,10 +1067,9 @@ function estimateDist(anchor) {
 
   let smooth;
   if (S.estimatedDist > 4.5) {
-    smooth = median;  /* cold start — jump immediately */
+    smooth = median;
   } else {
     const approaching = median < S.estimatedDist;
-    /* Approaching: fast (0.75). Receding: very slow (0.08) to suppress noise spikes */
     const alpha = approaching ? 0.75 : 0.08;
     smooth = S.estimatedDist * (1 - alpha) + median * alpha;
   }
@@ -1178,15 +1091,13 @@ function processDist(dist) {
 
   updateDistUI(dist);
   maybeShowProxMsg(dist);
-  /* Fruit decay removed — buttons always stay visible */
 
-  /* Reveal: requires BOTH sufficient picks AND close enough distance */
   if (dist <= CONFIG.DIST_REVEAL && S.phase === 'ar' && !revealDone) {
     if (S.fruitsChosen >= 3) {
       triggerReveal();
     } else {
       if (!window._nudgeSent) {
-        window._nudgeSent = true; /* permanent — never resets */
+        window._nudgeSent = true;
         addARMsg('你先猜猜看是什麼再靠近吧。');
       }
     }
@@ -1206,27 +1117,23 @@ function devSim(v) {
   }
 }
 
-/* ─── DISTANCE UI ────────────────────── */
 function updateDistUI(dist) {
   document.getElementById('dp-val').textContent = dist.toFixed(2) + ' m';
   const prox = Math.max(0, Math.min(1, 1 - (dist - CONFIG.DIST_REVEAL) / (CONFIG.DIST_FAR - CONFIG.DIST_REVEAL)));
   document.getElementById('dp-dot').style.boxShadow =
-    `0 0 ${6 + prox * 14}px rgba(255,92,92,${0.6 + prox * 0.4})`;
+    `0 0 ${6 + prox * 14}px rgba(164,52,62,${0.6 + prox * 0.4})`;
 }
 
 /* ─── FRUIT DECAY ────────────────────── */
-/* Random decay order computed once when AR starts */
-let decayOrder = null;   /* array of btn indices in random disappear order */
+let decayOrder = null;
 
 function initDecayOrder() {
   const btns = document.querySelectorAll('#fruit-grid .f-btn');
   const indices = Array.from({ length: btns.length }, (_, i) => i);
-  /* Fisher-Yates shuffle */
   for (let i = indices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
-  /* The last index in shuffled order is the one that NEVER disappears */
   decayOrder = indices;
 }
 
@@ -1239,20 +1146,18 @@ function updateFruitDecay(dist) {
 
   const btns = Array.from(document.querySelectorAll('#fruit-grid .f-btn'));
   const total = btns.length;
-  const canDisappear = total - 1;   /* last in decayOrder always stays */
+  const canDisappear = total - 1;
 
   decayOrder.forEach((btnIdx, rank) => {
     const btn = btns[btnIdx];
     if (!btn) return;
 
-    /* Last button in decayOrder: permanently visible */
     if (rank === total - 1) {
       btn.classList.remove('decay-1','decay-2','decay-3','decay-gone');
       btn.style.pointerEvents = '';
       return;
     }
 
-    /* Each button's fade window based on its rank in random order */
     const pos      = rank / canDisappear;
     const fadeStart = pos * 0.7;
     const fadeEnd   = fadeStart + 0.25;
@@ -1274,16 +1179,13 @@ async function triggerReveal() {
   revealDone = true;
   S.phase = 'reveal';
 
-  /* Stop AR */
   if (S.mindar) { try { S.mindar.pause(); } catch {} }
   document.getElementById('ar-container').classList.remove('active');
   document.getElementById('ar-ux').classList.remove('active');
   document.getElementById('dev-wrap').classList.remove('show');
 
-  /* Pick reveal script based on behaviour */
   let script;
   if (!targetFoundOnce) {
-    /* Never detected the box */
     script = REVEAL_CHAT_NO_BOX;
   } else {
     const fast = S.approachDuration < 7000 && S.hesitationCount === 0;
@@ -1291,10 +1193,8 @@ async function triggerReveal() {
     script = fast ? REVEAL_CHAT_FAST : hes ? REVEAL_CHAT_HES : REVEAL_CHAT_SLOW;
   }
 
-  /* Show reveal chat */
   document.getElementById('chat-reveal').classList.add('active');
 
-  /* Run script */
   for (const step of script) {
     await wait(step.delay ?? 600);
     if (step.photo) {
@@ -1307,11 +1207,9 @@ async function triggerReveal() {
     }
   }
 
-  /* Show exit notice */
   await wait(2000);
   addRevealSystemMsg('陌生號碼已退出聊天');
 
-  /* Show countdown timer */
   await wait(3000);
   addRevealEndCard();
 }
@@ -1321,9 +1219,21 @@ function addRevealMsg(text) {
   const tdots = document.getElementById('reveal-typing');
   const div = document.createElement('div');
   div.className = 'msg msg-sys';
-  div.innerHTML = `<div class="m-avt"><svg width="16" height="16" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.8)"/><path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></div>
-    <div><div class="bubble">${text.replace(/\n/g,'<br>')}</div>
-    <div class="b-meta">${ts()}</div></div>`;
+  /* Use a wrapper so we can set textContent safely, then rely on white-space:pre-wrap */
+  const bubbleDiv = document.createElement('div');
+  bubbleDiv.className = 'bubble';
+  bubbleDiv.textContent = text;
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'b-meta';
+  metaDiv.textContent = ts();
+  const avt = document.createElement('div');
+  avt.className = 'm-avt';
+  avt.innerHTML = '<svg width="16" height="16" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="rgba(255,255,255,0.8)"/><path d="M4 26c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="rgba(255,255,255,0.8)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>';
+  const body = document.createElement('div');
+  body.appendChild(bubbleDiv);
+  body.appendChild(metaDiv);
+  div.appendChild(avt);
+  div.appendChild(body);
   feed.insertBefore(div, tdots);
   requestAnimationFrame(() => requestAnimationFrame(() => div.classList.add('in')));
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
@@ -1353,7 +1263,6 @@ function addRevealEndCard() {
   requestAnimationFrame(() => requestAnimationFrame(() => { div.style.opacity = '1'; }));
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
 
-  /* Countdown */
   let remaining = 30;
   const tick = setInterval(() => {
     remaining--;
@@ -1367,7 +1276,6 @@ function showRevealPhoto() {
   const feed  = document.getElementById('reveal-feed');
   const tdots = document.getElementById('reveal-typing');
 
-  /* Build: .photo-row > .m-avt + .photo-bubble > img + .photo-cap */
   const row = document.createElement('div');
   row.className = 'photo-row';
 
@@ -1383,11 +1291,11 @@ function showRevealPhoto() {
     img.alt  = '箱內視角';
     img.style.cssText = 'width:100%;display:block;height:auto;filter:saturate(0.4) brightness(0.65) blur(1px);';
     img.onerror = () => {
-    img.style.display = 'none';
-    const fb = document.createElement('div');
-    fb.style.cssText = 'width:100%;aspect-ratio:4/3;background:#111;';
-    photo.insertBefore(fb, null);
-  };
+      img.style.display = 'none';
+      const fb = document.createElement('div');
+      fb.style.cssText = 'width:100%;aspect-ratio:4/3;background:#111;';
+      photo.insertBefore(fb, null);
+    };
     photo.appendChild(img);
     img.src = CONFIG.REVEAL_PHOTO;
   } else {
