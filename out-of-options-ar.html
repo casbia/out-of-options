@@ -525,7 +525,6 @@ const CONFIG = {
     <div class="dist-pill" id="dist-pill">
       <div class="dp-dot" id="dp-dot"></div>
       <div class="dp-val" id="dp-val">-- m</div>
-      <div id="dp-hint" style="font-size:9px;color:rgba(255,255,255,0.5);margin-left:2px;transition:opacity 0.4s;"></div>
     </div>
   </div>
 
@@ -539,9 +538,8 @@ const CONFIG = {
       <div class="f-btn" data-label="橘子" onclick="pickFruit(this)"><div class="f-emoji">🍊</div></div>
       <div class="f-btn" data-label="藍莓" onclick="pickFruit(this)"><div class="f-emoji">🫐</div></div>
       <div class="f-btn" data-label="蜜瓜" onclick="pickFruit(this)"><div class="f-emoji">🍈</div></div>
-      <div class="f-btn f-btn-silence" data-label="⋯⋯" onclick="pickFruit(this)"
-           style="grid-column:1/-1;border-style:dashed;border-color:var(--text-ter);">
-        <div class="f-emoji" style="font-size:13px;letter-spacing:5px;color:var(--text-ter);font-weight:300;">⋯⋯</div>
+      <div class="f-btn" data-label="⋯⋯" onclick="pickFruit(this)" style="grid-column:1/-1;">
+        <div class="f-emoji" style="font-size:15px;letter-spacing:4px;">⋯⋯</div>
       </div>
     </div>
   </div>
@@ -1092,8 +1090,8 @@ function pickFruit(el) {
     if (S.fruitsChosen === 3) {
       setTimeout(() => addARMsg('好了⋯⋯現在靠近箱子。\n用走的，不是用鏡頭。'), 1600);
     }
-    /* After 5 picks without approaching: trigger reveal directly */
-    if (S.fruitsChosen >= 5 && !revealDone) {
+    /* After 8 picks without approaching: trigger reveal directly */
+    if (S.fruitsChosen >= 8 && !revealDone) {
       setTimeout(() => {
         addARMsg('你一直在選⋯⋯\n但你沒有靠近。');
         setTimeout(() => triggerReveal(), 2000);
@@ -1188,9 +1186,8 @@ function processDist(dist) {
       triggerReveal();
     } else {
       if (!window._nudgeSent) {
-        window._nudgeSent = true;
+        window._nudgeSent = true; /* permanent — never resets */
         addARMsg('先多選幾個水果⋯⋯再靠近。');
-        setTimeout(() => { window._nudgeSent = false; }, 4000);
       }
     }
   }
@@ -1210,22 +1207,11 @@ function devSim(v) {
 }
 
 /* ─── DISTANCE UI ────────────────────── */
-let _lastUIdist = 999;
 function updateDistUI(dist) {
   document.getElementById('dp-val').textContent = dist.toFixed(2) + ' m';
   const prox = Math.max(0, Math.min(1, 1 - (dist - CONFIG.DIST_REVEAL) / (CONFIG.DIST_FAR - CONFIG.DIST_REVEAL)));
   document.getElementById('dp-dot').style.boxShadow =
     `0 0 ${6 + prox * 14}px rgba(255,92,92,${0.6 + prox * 0.4})`;
-  /* Direction hint */
-  const hint = document.getElementById('dp-hint');
-  if (hint) {
-    const delta = _lastUIdist - dist;
-    if (dist < 0.4)           hint.textContent = '← 退後';
-    else if (delta > 0.02)    hint.textContent = '→ 靠近';
-    else if (delta < -0.02)   hint.textContent = '← 退後';
-    else                      hint.textContent = '';
-    _lastUIdist = dist;
-  }
 }
 
 /* ─── FRUIT DECAY ────────────────────── */
@@ -1325,13 +1311,9 @@ async function triggerReveal() {
   await wait(2000);
   addRevealSystemMsg('陌生號碼已退出聊天');
 
-  /* Show artwork title */
+  /* Show countdown timer */
   await wait(3000);
   addRevealEndCard();
-
-  /* Auto-reset after 90s so next visitor starts fresh */
-  await wait(90000);
-  if (S.phase === 'reveal') location.reload();
 }
 
 function addRevealMsg(text) {
@@ -1364,16 +1346,21 @@ function addRevealEndCard() {
   const feed  = document.getElementById('reveal-feed');
   const tdots = document.getElementById('reveal-typing');
   const div = document.createElement('div');
-  div.style.cssText = 'text-align:center;padding:24px 16px 8px;opacity:0;transition:opacity 1.2s ease;';
-  div.innerHTML = `
-    <div style="font-size:16px;font-weight:600;color:var(--text-pri);letter-spacing:0.08em;margin-bottom:8px;">不在選項裡</div>
-    <div style="font-size:11px;color:var(--text-ter);letter-spacing:0.2em;margin-bottom:12px;">OUT OF OPTIONS</div>
-    <div style="font-size:12px;color:var(--text-sec);line-height:1.9;max-width:260px;margin:0 auto;">
-      我們總是用選項去定義他人，<br>但真實的情緒，<br>從來不在選項裡。
-    </div>`;
+  div.style.cssText = 'text-align:center;padding:20px 16px 8px;opacity:0;transition:opacity 1s ease;';
+  const counterId = 'reload-counter';
+  div.innerHTML = `<div style="font-size:12px;color:var(--text-ter);letter-spacing:0.05em;"><span id="${counterId}">30</span> 秒後重製頁面</div>`;
   feed.insertBefore(div, tdots);
   requestAnimationFrame(() => requestAnimationFrame(() => { div.style.opacity = '1'; }));
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
+
+  /* Countdown */
+  let remaining = 30;
+  const tick = setInterval(() => {
+    remaining--;
+    const el = document.getElementById(counterId);
+    if (el) el.textContent = remaining;
+    if (remaining <= 0) { clearInterval(tick); location.reload(); }
+  }, 1000);
 }
 
 function showRevealPhoto() {
