@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" href="data:,">
-<title>Out of Options</title>
+<title>不在選項裡 · Out of Options</title>
 
 <!--
   替換清單：
@@ -445,7 +445,7 @@ const CONFIG = {
         <div class="dc-sdot"></div>
         <span>等待確認取件 · 需現場掃描</span>
       </div>
-      <div class="dc-addr">📍 &nbsp;包裹外層印有水果圖案</div>
+      <div class="dc-addr">📍 &nbsp;包裹外層貼有水果圖案</div>
     </div>
     <div class="msg-card" onclick="startAR()">
       <div class="mc-avt">
@@ -458,7 +458,7 @@ const CONFIG = {
       </div>
       <div class="mc-body">
         <div class="mc-name">陌生來電 · 未知號碼</div>
-        <div class="mc-prev">不好意思，那個箱子⋯⋯能幫我看一下嗎？</div>
+        <div class="mc-prev">嘿，那個箱子⋯⋯能幫我看一下嗎？</div>
       </div>
       <div class="mc-time">剛剛</div>
     </div>
@@ -592,59 +592,59 @@ const S = {
 /* ─── CONTENT ────────────────────────── */
 /* Pre-AR chat (before camera opens) */
 const PRE_CHAT = [
-  { text: '不好意思，你是誰？外送員嗎？能不能幫幫我？' },
-  { text: '我剛收到取件通知說我的包裹到了，但我現在有點難移動⋯⋯' },
-  { text: '那個箱子上好像印了橘子的圖案，但我不確定裡面是不是真的是橘子。' },
-  { text: '喔因為我上次也訂過水果，但那時候盒子外面寫橘子，打開居然是檸檬。' },
-  { text: '雖然有點突然，但我想問，你覺得這次裡面是什麼？', action: 'show-pre-options' },
+  { text: '嘿，不好意思，你是外送員嗎？' },
+  { text: '我剛收到取件通知說包裹到了，但我現在被困在外面⋯⋯' },
+  { text: '那個箱子上貼了橘子的標籤，但說真的——\n我不確定裡面是不是真的橘子。' },
+  { text: '上次訂的東西，外面寫橘子，打開是檸檬。\n貼的標籤跟裡面的，不一定是同一種。' },
+  { text: '你覺得這次裡面是什麼？', action: 'show-pre-options' },
 ];
 
 /* Pre-chat fruit replies */
 const PRE_REPLIES = {
-  '草莓': ['真的嗎？感覺不太可能吧！', '⋯⋯希望你說得對。'],
+  '草莓': ['真的嗎？那就好⋯⋯', '希望你說得對。'],
   '檸檬': ['嗯。\n我也不確定。', '說不定吧。'],
-  '葡萄': ['哈⋯⋯這樣嗎。', '可能？'],
-  '橘子': ['我想也是。', '但有點不不確定呢⋯⋯對吧？'],
-  '藍莓': ['嗯⋯⋯', '也許是。'],
-  '蜜瓜': ['這樣的話倒是好事！', '⋯⋯希望如此。'],
+  '葡萄': ['哈⋯⋯這樣嗎。', '可能。'],
+  '橘子': ['我也是。', '有點不安⋯⋯對。'],
+  '藍莓': ['嗯。', '也許是。'],
+  '蜜瓜': ['這樣的話倒是好事。', '⋯⋯希望如此。'],
 };
 
 /* Replies to fruit picks */
 const REPLIES = {
   '草莓': [
-    '草莓是嗎？\n沒有其他的嗎？',
-    '你真的這樣覺得？\n還是你覺得草莓比較好吃？',
-    '恩⋯⋯我也曾用過你現在用的這個介面。\n選項真的很少～',
+    '草莓是嗎。\n沒有其他的嗎？',
+    '你真的這樣覺得？\n還是草莓感覺比較好選？',
+    '我曾用過你現在用的這個介面。\n選擇很少。',
   ],
   '檸檬': [
-    '檸檬⋯⋯\n你確定嗎？',
+    '檸檬。\n你確定嗎？',
     '還是說你覺得不是水果？',
-    '你選的每個選項我都知道。\n但或許答案不在這些選項裡面？',
+    '你選的每個詞我都知道。\n但我不在這些詞裡面。',
   ],
   '葡萄': [
-    '葡萄？\n你是猜的，還是你真的有看到？',
+    '葡萄是嗎。\n你是猜的，還是你真的感覺到了？',
     '沒有其他的嗎？',
-    '很有趣。\n你很堅持呢。',
+    '你選的每個詞我都知道。\n但我不在這些詞裡面。',
   ],
   '橘子': [
-    '橘子。\n有意思⋯⋯這個箱子外面就是印橘子。',
-    '你真的覺得是橘子⋯⋯\n還是你只是看到了橘子？',
-    '沒有其他的選擇嗎？',
+    '橘子。\n有意思——這個箱子外面就是橘子。',
+    '你覺得是橘子⋯⋯\n還是你只是看到了橘子？',
+    '沒有其他的嗎？',
   ],
   '藍莓': [
-    '藍莓。\n你怎麼會這樣覺得？',
-    '也許吧。\n是因為選項不夠用嗎。',
-    '你知道嗎？我曾用過你現在用的這個介面。\n但它沒辦法裝下我全部的猜想。',
+    '藍莓。\n你怎麼知道的？',
+    '也許吧。\n但選項不夠用。',
+    '我曾用過你現在用的這個介面。\n它沒辦法裝下我全部。',
   ],
   '蜜瓜': [
-    '蜜瓜是嗎⋯⋯\n真的嗎？',
-    '你想吃蜜瓜嗎？',
-    '如果你覺得不是水果也可以說。',
+    '蜜瓜是嗎。\n真的嗎？',
+    '沒有其他的嗎？',
+    '你覺得不是水果也可以說。',
   ],
   '⋯⋯': [
     '這樣我並不明白你的意思。',
     '你不知道⋯⋯\n還是說你覺得不在這裡面？',
-    '恩⋯⋯這裡只有這些選項。\n我知道不夠用⋯⋯',
+    '這裡只有這些選項。\n我知道不夠用。',
   ],
 };
 
@@ -666,9 +666,9 @@ function maybeShowProxMsg(dist) {
   /* Sequential approach messages — only trigger when actually getting closer */
   const PROX_STEPS = [
     { dist: 1.8, text: '你看到那個箱子了嗎？\n把鏡頭對準它。' },
-    { dist: 1.2, text: '選個水果吧！告訴我你的想法。' },
-    { dist: 0.7, text: '繼續靠近箱子⋯⋯' },
-    { dist: 0.5, text: '我還想再近一點。' },
+    { dist: 1.2, text: '選幾個水果告訴我。' },
+    { dist: 0.7, text: '繼續靠近箱子⋯⋯\n用走的，不是用鏡頭拉近。' },
+    { dist: 0.5, text: '再近一點。' },
   ];
   if (proxMsgIdx >= PROX_STEPS.length) return;
   const next = PROX_STEPS[proxMsgIdx];
@@ -683,43 +683,43 @@ function maybeShowProxMsg(dist) {
 /* Reveal chat — voice of someone trapped inside, looking out through a crack */
 const REVEAL_CHAT_FAST = [
   { text: '你花了多久才靠過來？' },
-  { text: '感覺很久。', delay: 1400 },
-  { text: '畢竟，我在這裡等了很久。', delay: 1200 },
+  { text: '感覺很久了。', delay: 1400 },
+  { text: '我在這裡等很久了。', delay: 1200 },
   { photo: true, delay: 2200 },
-  { text: '這是現在我眼前看到的樣子。', delay: 800 },
-  { text: '其實你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
-  { text: '我知道它只有六個選項。\n我當然知道。', delay: 1400 },
+  { text: '這是我能看到的樣子。', delay: 800 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '我知道它只有六個選項。\n我一直都知道。', delay: 1400 },
   { text: '但我不在那六個裡面。', delay: 1200 },
 ];
 const REVEAL_CHAT_HES = [
   { text: '你來了又走。' },
-  { text: '我以為你決定不來了。', delay: 1600 },
+  { text: '我以為你不來了。', delay: 1600 },
   { text: '⋯⋯但你還是來了。', delay: 1200 },
   { photo: true, delay: 2200 },
-  { text: '我也開鏡頭給你看看吧。', delay: 800 },
-  { text: '是啊⋯⋯\n我在箱子裡哦！', delay: 1600 },
+  { text: '這是我能看到的樣子。', delay: 800 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
   { text: '六個選項。\n我數過很多次了。', delay: 1400 },
   { text: '沒有一個是我。', delay: 1000 },
 ];
 const REVEAL_CHAT_SLOW = [
-  { text: '你很慢呢。' },
-  { text: '不過，其實我所在的位置很難有時間感。', delay: 1800 },
+  { text: '你很慢。' },
+  { text: '我在這裡的時候沒有時間感。', delay: 1800 },
   { text: '但我感覺得到有人靠近。', delay: 1400 },
   { photo: true, delay: 2200 },
-  { text: '是啊，我在裡面等你。', delay: 800 },
-  { text: '很少人會跟我說話⋯⋯\n謝謝你。', delay: 1600 },
-  { text: '我不是你說的任何水果，\n沒有東西能定義我。', delay: 1600 },
-  { text: '但我還是想看看其他人怎麼說。', delay: 1000 },
+  { text: '這是我能看到的樣子。', delay: 800 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '我設計它的時候就知道\n它裝不下真實的東西。', delay: 1600 },
+  { text: '但我還是設計了它。', delay: 1000 },
 ];
 
 /* Reveal — user never detected the box */
 const REVEAL_CHAT_NO_BOX = [
   { text: '你⋯⋯沒有拍到箱子。' },
   { text: '沒關係。\n很多人都沒有。', delay: 1600 },
-  { text: '你有沒有想過，也許你根本不需要靠近\n就能知道裡面是什麼。', delay: 1800 },
+  { text: '也許你根本不需要靠近\n才能知道裡面是什麼。', delay: 1800 },
   { photo: true, delay: 2000 },
-  { text: '其實⋯⋯\n裡面是我。', delay: 1600 },
-  { text: '就算你選了再多選項，\n答案也不在那裡面喔～', delay: 1600 },
+  { text: '你用的那個介面⋯⋯\n是我設計的。', delay: 1600 },
+  { text: '就算你沒有靠近，\n答案也不在那六個選項裡。', delay: 1600 },
 ];
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -804,7 +804,7 @@ async function pickPreFruit(el) {
 
   /* Transition — show camera button after enough reading time */
   await wait(1600);
-  addPreMsg('能幫我開鏡頭對準那個箱子嗎？告訴我你覺得它裡面是什麼。');
+  addPreMsg('能幫我開鏡頭對準那個箱子嗎？選標籤告訴我它現在的狀態。');
   await wait(1800);
   document.getElementById('pre-cam-btn').style.display = 'flex';
   setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
@@ -844,28 +844,25 @@ async function startAR() {
       width:  { ideal: 1280 },
       height: { ideal: 720 },
     },
-    /* Close-range tracking optimisation:
-       filterMinCF very low = tracks at steep angles and close distances
-       filterBeta high = fast response, less lag when moving
-       missTolerance high = doesn't give up quickly when briefly occluded
-       warmupTolerance low = fast target acquisition */
-    filterMinCF:     0.00001,
-    filterBeta:      10000,
-    missTolerance:   15,
-    warmupTolerance: 2,
+    /* Tracking params:
+       filterMinCF / filterBeta control the One Euro Filter for pose smoothing.
+       Conservative values give better overall stability; extreme values
+       caused tracking to degrade over time. */
+    filterMinCF:     0.001,
+    filterBeta:      1000,
+    missTolerance:   5,
+    warmupTolerance: 3,
   });
 
   const { renderer, scene, camera } = S.mindar;
   renderer.outputColorSpace = 'srgb';
 
   /* ── Multi-face anchors ──────────────────────────────────────────
-     targets.mind can contain up to 6 image targets (one per box face).
-     We register an anchor for each available target index (0–5).
-     The one currently visible drives distance estimation.
-     Compile all face images together at:
-     https://hiukim.github.io/mind-ar-js-doc/tools/compile
+     Set NUM_FACES to match exactly how many images you compiled into
+     targets.mind. If you only uploaded one image, use 1.
+     Trying to track more faces than compiled causes instability.
   ──────────────────────────────────────────────────────────────── */
-  const NUM_FACES = 3;   /* ← change to however many images you compiled */
+  const NUM_FACES = 1;   /* ← set to number of images you compiled */
   const anchors = [];
   let activeAnchor = null;
 
@@ -934,7 +931,7 @@ function openARPhase() {
 const NUDGE_MSGS = [
   '你認為包裹裡面是什麼？',
   '鏡頭對準箱子⋯⋯我想看看它的樣子。',
-  '選一個水果，我很好奇你的猜想。',
+  '選一個標籤告訴我。',
   '還在嗎？',
 ];
 let nudgeTimer = null;
@@ -1063,9 +1060,9 @@ function pickFruit(el) {
   /* First time switching to a new fruit after having picked a different one — cross-reference */
   if (switching && pickCount === 0 && S.fruitsChosen > 1) {
     const crossReplies = [
-      `剛才是${lastLabel}，現在是${label}。\n難道說你也不確定嗎？`,
-      `你變了。\n從${lastLabel}換到${label}。\n為什麼？`,
-      `${lastLabel}不行嗎？`,
+      `剛才是${lastLabel}，現在是${label}。\n你自己也不確定嗎？`,
+      `你換了。\n從${lastLabel}換到${label}。\n為什麼？`,
+      `${lastLabel}不夠嗎？`,
     ];
     reply = crossReplies[Math.floor(Math.random() * crossReplies.length)];
   } else if (pickCount < rs.length) {
@@ -1073,12 +1070,12 @@ function pickFruit(el) {
   } else {
     const sceptical = [
       '你已經選過這個了。',
-      '這裡只有這些選項。',
+      '這裡只有六個選項。',
       '你是認真的嗎？',
-      '你確定了嗎？',
+      '我知道選項不夠用。',
       '還是說，你只是在測試我？',
-      '⋯⋯？',
-      '你很堅持。',
+      '⋯⋯',
+      '你用的那個介面，是我設計的。',
       '沒有其他的了嗎？',
     ];
     reply = sceptical[(pickCount - rs.length) % sceptical.length];
@@ -1088,7 +1085,7 @@ function pickFruit(el) {
     addARMsg(reply);
     /* After 3 picks: prompt to approach physically */
     if (S.fruitsChosen === 3) {
-      setTimeout(() => addARMsg('好了⋯⋯現在靠近箱子。\n我想看有水果的那面。'), 1600);
+      setTimeout(() => addARMsg('好了⋯⋯現在靠近箱子。\n用走的，不是用鏡頭。'), 1600);
     }
     /* After 8 picks without approaching: trigger reveal directly */
     if (S.fruitsChosen >= 8 && !revealDone) {
@@ -1187,7 +1184,7 @@ function processDist(dist) {
     } else {
       if (!window._nudgeSent) {
         window._nudgeSent = true; /* permanent — never resets */
-        addARMsg('你先猜猜看是什麼再靠近吧。');
+        addARMsg('先多選幾個水果⋯⋯再靠近。');
       }
     }
   }
@@ -1383,18 +1380,15 @@ function showRevealPhoto() {
     img.alt  = '箱內視角';
     img.style.cssText = 'width:100%;display:block;height:auto;filter:saturate(0.4) brightness(0.65) blur(1px);';
     img.onerror = () => {
+      /* If image fails to load, show nothing — don't substitute emoji */
       img.style.display = 'none';
-      const fb = document.createElement('div');
-      fb.style.cssText = 'width:100%;aspect-ratio:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;filter:blur(2px) brightness(0.5)';
-      fb.textContent = '🍊';
-      photo.insertBefore(fb, null);
     };
     photo.appendChild(img);
     img.src = CONFIG.REVEAL_PHOTO;
   } else {
+    /* No photo configured — show empty dark frame */
     const gen = document.createElement('div');
-    gen.style.cssText = 'width:100%;aspect-ratio:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;filter:blur(2px) brightness(0.5)';
-    gen.textContent = '🍊';
+    gen.style.cssText = 'width:100%;aspect-ratio:1;background:#111;display:block;';
     photo.appendChild(gen);
   }
 
