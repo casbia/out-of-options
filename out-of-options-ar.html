@@ -346,7 +346,7 @@ html, body {
 .msg-sys { align-self:flex-start; align-items:flex-end; margin-bottom:4px; }
 .msg-usr { align-self:flex-end; flex-direction:row-reverse; margin-bottom:4px; }
 .m-avt { width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2d6a6a,#1a4a5a);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
-.bubble { padding:10px 14px;font-size:15px;line-height:1.5;max-width:76%;word-break:break-word; }
+.bubble { padding:10px 14px;font-size:15px;line-height:1.5;max-width:76%;word-break:normal;overflow-wrap:break-word; }
 .msg-sys .bubble { background:var(--surface);color:var(--text-pri);border-radius:18px 18px 18px 4px;box-shadow:var(--sh-sm); }
 .msg-usr .bubble { background:var(--blue);color:#fff;border-radius:18px 18px 4px 18px; }
 .b-meta { font-size:10px;color:var(--text-ter);margin-top:3px;padding:0 4px; }
@@ -595,7 +595,7 @@ const PRE_CHAT = [
   { text: '不好意思，你是誰？外送員嗎？能不能幫幫我？' },
   { text: '我剛收到取件通知說我的包裹到了，但我現在有點難移動⋯⋯' },
   { text: '那個箱子上好像印了橘子的圖案，但我不確定裡面是不是真的是橘子。' },
-  { text: '喔因為我上次也訂過水果，但那時候盒子外面寫橘子，打開居然是檸檬。' },
+  { text: '因為我之前也訂過水果，但那時候盒子外寫橘子，打開居然是檸檬！' },
   { text: '雖然有點突然，但我想問，你覺得這次裡面是什麼？', action: 'show-pre-options' },
 ];
 
@@ -605,7 +605,7 @@ const PRE_REPLIES = {
   '檸檬': ['嗯。\n我也不確定。', '說不定吧。'],
   '葡萄': ['哈⋯⋯這樣嗎。', '可能？'],
   '橘子': ['我想也是。', '但有點不不確定呢⋯⋯對吧？'],
-  '藍莓': ['嗯⋯⋯', '也許是。'],
+  '藍莓': ['嗯⋯⋯', '也許是呢！'],
   '蜜瓜': ['這樣的話倒是好事！', '⋯⋯希望如此。'],
 };
 
@@ -633,12 +633,12 @@ const REPLIES = {
   ],
   '藍莓': [
     '藍莓。\n你怎麼會這樣覺得？',
-    '也許吧。\n是因為選項不夠用嗎。',
+    '也許吧。\n是因為選項不夠用嗎⋯⋯',
     '你知道嗎？我曾用過你現在用的這個介面。\n但它沒辦法裝下我全部的猜想。',
   ],
   '蜜瓜': [
-    '蜜瓜是嗎⋯⋯\n真的嗎？',
-    '你想吃蜜瓜嗎？',
+    '蜜瓜啊⋯⋯\n真的嗎？',
+    '話說你想吃蜜瓜嗎？',
     '如果你覺得不是水果也可以說。',
   ],
   '⋯⋯': [
@@ -667,8 +667,8 @@ function maybeShowProxMsg(dist) {
   const PROX_STEPS = [
     { dist: 1.8, text: '你看到那個箱子了嗎？\n把鏡頭對準它。' },
     { dist: 1.2, text: '選個水果吧！告訴我你的想法。' },
-    { dist: 0.7, text: '繼續靠近箱子⋯⋯' },
-    { dist: 0.5, text: '我還想再近一點。' },
+    { dist: 0.7, text: '繼續靠近箱子⋯⋯朝向圖標那面。' },
+    { dist: 0.5, text: '我還想再近一點！' },
   ];
   if (proxMsgIdx >= PROX_STEPS.length) return;
   const next = PROX_STEPS[proxMsgIdx];
@@ -692,8 +692,8 @@ const REVEAL_CHAT_FAST = [
   { text: '但我不在那六個裡面。', delay: 1200 },
 ];
 const REVEAL_CHAT_HES = [
-  { text: '你來了又走。' },
-  { text: '我以為你決定不來了。', delay: 1600 },
+  { text: '你靠近了又遠離。' },
+  { text: '我以為你會直接離開。', delay: 1600 },
   { text: '⋯⋯但你還是來了。', delay: 1200 },
   { photo: true, delay: 2200 },
   { text: '我也開鏡頭給你看看吧。', delay: 800 },
@@ -704,22 +704,22 @@ const REVEAL_CHAT_HES = [
 const REVEAL_CHAT_SLOW = [
   { text: '你很慢呢。' },
   { text: '不過，其實我所在的位置很難有時間感。', delay: 1800 },
-  { text: '但我感覺得到有人靠近。', delay: 1400 },
+  { text: '但我感覺得到有人靠近！', delay: 1400 },
   { photo: true, delay: 2200 },
-  { text: '是啊，我在裡面等你。', delay: 800 },
-  { text: '很少人會跟我說話⋯⋯\n謝謝你。', delay: 1600 },
-  { text: '我不是你說的任何水果，\n沒有東西能定義我。', delay: 1600 },
-  { text: '但我還是想看看其他人怎麼說。', delay: 1000 },
+  { text: '哈哈，我在裡面等你過來。', delay: 800 },
+  { text: '很少人會跟我說話⋯⋯\n謝謝你～', delay: 1600 },
+  { text: '我不是你想的任何水果，\n沒有東西能定義我。', delay: 1600 },
+  { text: '但我還是想聽聽你怎麼說。', delay: 1000 },
 ];
 
 /* Reveal — user never detected the box */
 const REVEAL_CHAT_NO_BOX = [
   { text: '你⋯⋯沒有拍到箱子。' },
   { text: '沒關係。\n很多人都沒有。', delay: 1600 },
-  { text: '你有沒有想過，也許你根本不需要靠近\n就能知道裡面是什麼。', delay: 1800 },
+  { text: '你有沒有想過，也許你根本不需要靠近，\n就能知道裡面是什麼。', delay: 1800 },
   { photo: true, delay: 2000 },
   { text: '其實⋯⋯\n裡面是我。', delay: 1600 },
-  { text: '就算你選了再多選項，\n答案也不在那裡面喔～', delay: 1600 },
+  { text: '就算你選了再多選項，\n答案也不在那裡面！', delay: 1600 },
 ];
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -935,7 +935,7 @@ const NUDGE_MSGS = [
   '你認為包裹裡面是什麼？',
   '鏡頭對準箱子⋯⋯我想看看它的樣子。',
   '選一個水果，我很好奇你的猜想。',
-  '還在嗎？',
+  '嗨～還在嗎？',
 ];
 let nudgeTimer = null;
 let nudgeIdx   = 0;
@@ -963,7 +963,7 @@ function onTargetFound() {
   initDecayOrder();
   /* Small delay before first message so user can see the camera view first */
   setTimeout(() => {
-    addARMsg('找到了。\n選一個水果告訴我⋯⋯你覺得裡面是什麼？');
+    addARMsg('找到了！\n告訴我⋯⋯你覺得裡面是什麼？');
   }, 1200);
 }
 
@@ -1078,8 +1078,8 @@ function pickFruit(el) {
       '你確定了嗎？',
       '還是說，你只是在測試我？',
       '⋯⋯？',
-      '你很堅持。',
-      '沒有其他的了嗎？',
+      '你很堅持呢。',
+      '沒有其他可能了嗎？',
     ];
     reply = sceptical[(pickCount - rs.length) % sceptical.length];
   }
